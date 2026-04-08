@@ -287,7 +287,7 @@ main{padding:24px;overflow-x:hidden}
     <div class="paywall-box">
       <div class="auth-logo">PREDADOR<span style="color:#C0392B">FIN</span></div>
       <div style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:28px">Escolha seu plano</div>
-      <div class="plan-cards">
+      <div class="plan-cards" style="grid-template-columns:1fr 1fr 1fr">
         <div class="plan-card" id="plan-free" onclick="selPlan('free')">
           <div class="plan-badge">Gratuito</div>
           <div class="plan-name">Starter</div>
@@ -303,7 +303,7 @@ main{padding:24px;overflow-x:hidden}
         <div class="plan-card selected" id="plan-pro" onclick="selPlan('pro')">
           <div class="plan-badge">Recomendado</div>
           <div class="plan-name">Predador PRO</div>
-          <div class="plan-price"><sup>R$</sup>27</div>
+          <div class="plan-price"><sup>R$</sup>19,90</div>
           <div class="plan-period">por mês</div>
           <div class="plan-features">
             <div class="plan-feat">Gastos ilimitados</div>
@@ -312,11 +312,23 @@ main{padding:24px;overflow-x:hidden}
             <div class="plan-feat">Exportar dados</div>
           </div>
         </div>
+        <div class="plan-card" id="plan-bundle" onclick="selPlan('bundle')">
+          <div class="plan-badge" style="color:#F39C12">Bundle</div>
+          <div class="plan-name">E-book + PRO</div>
+          <div class="plan-price"><sup>R$</sup>97</div>
+          <div class="plan-period">único · 3 meses PRO</div>
+          <div class="plan-features">
+            <div class="plan-feat">E-book Predador Financeiro</div>
+            <div class="plan-feat">3 meses PRO inclusos</div>
+            <div class="plan-feat">Dashboard completo</div>
+            <div class="plan-feat">Exportar dados</div>
+          </div>
+        </div>
       </div>
       <button class="btn-full" id="paywall-btn" onclick="ativarPlano()">Começar 7 dias grátis — PRO</button>
       <div class="paywall-divider">— ou —</div>
       <button class="btn-full outline" onclick="ativarFree()">Continuar com Starter gratuito</button>
-      <p class="trial-note"><strong>7 dias grátis</strong> no PRO, depois R$27/mês. Cancele quando quiser.</p>
+      <p class="trial-note"><strong>7 dias grátis</strong> no PRO, depois R$19,90/mês. Cancele quando quiser.</p>
       <p class="paywall-out" onclick="doLogout()">Sair da conta</p>
     </div>
   </div>
@@ -651,9 +663,13 @@ function selPlan(p){
   selPlanVal = p
   document.getElementById('plan-free').classList.toggle('selected', p==='free')
   document.getElementById('plan-pro').classList.toggle('selected', p==='pro')
-  document.getElementById('paywall-btn').textContent = p==='pro'
-    ? 'Começar 7 dias grátis — PRO'
-    : 'Usar plano Starter'
+  document.getElementById('plan-bundle').classList.toggle('selected', p==='bundle')
+  const labels = {
+    pro: 'Começar 7 dias grátis — PRO',
+    free: 'Usar plano Starter',
+    bundle: 'Adquirir Bundle R$97'
+  }
+  document.getElementById('paywall-btn').textContent = labels[p] || labels.pro
 }
 
 async function ativarPlano(){
