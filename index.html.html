@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predador Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;
+  --red:#C0392B;--red2:#E74C3C;
+  --green:#1E8449;--green2:#27AE60;
+  --gold:#D4AC0D;--blue2:#2980B9;
+  --white:#F0EFE8;--gray:#777;--gray2:#333;--border:#2a2a2a;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;line-height:1.5;min-height:100vh}
+
+.screen{display:none}.screen.active{display:block}
+
+/* ── LOADING ── */
+#screen-loading{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.loader{text-align:center}
+.loader-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.06em;margin-bottom:16px}
+.loader-logo span{color:var(--red)}
+.loader-bar{width:200px;height:3px;background:var(--bg4);border-radius:2px;margin:0 auto}
+.loader-fill{height:100%;background:var(--red);border-radius:2px;animation:load 1.2s ease forwards}
+@keyframes load{from{width:0}to{width:100%}}
+.loader-text{font-size:12px;color:var(--gray);margin-top:12px;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── AUTH ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);padding:40px 36px}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.06em;text-align:center;margin-bottom:6px}
+.auth-logo span{color:var(--red)}
+.auth-tagline{text-align:center;font-size:13px;color:var(--gray);margin-bottom:32px}
+.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gray)}
+.field input{background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:11px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;width:100%}
+.field input:focus{border-color:var(--red)}
+.field input::placeholder{color:var(--gray2)}
+.btn-full{width:100%;padding:13px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--red);color:#fff;border:none;cursor:pointer;transition:background .15s;margin-top:8px}
+.btn-full:hover{background:var(--red2)}
+.btn-full:disabled{opacity:.5;cursor:not-allowed}
+.btn-full.outline{background:transparent;border:1px solid var(--border);color:var(--gray);margin-top:10px}
+.btn-full.outline:hover{border-color:var(--gray);color:var(--white)}
+.auth-switch{text-align:center;font-size:13px;color:var(--gray);margin-top:20px}
+.auth-switch a{color:var(--red);cursor:pointer}
+.msg-error{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#E74C3C;font-size:13px;padding:10px 14px;margin-bottom:14px;display:none}
+.msg-error.show{display:block}
+.msg-ok{background:rgba(30,132,73,.12);border:1px solid rgba(30,132,73,.3);color:#27AE60;font-size:13px;padding:10px 14px;margin-bottom:14px;display:none}
+.msg-ok.show{display:block}
+
+/* ── PAYWALL ── */
+.paywall-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.paywall-box{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--border);padding:40px 36px}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.plan-card{background:var(--bg3);border:1px solid var(--border);padding:20px 16px;cursor:pointer;transition:border-color .15s;position:relative}
+.plan-card:hover{border-color:var(--gray)}
+.plan-card.selected{border-color:var(--red)}
+.plan-card.selected::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)}
+.plan-badge{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+.plan-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px}
+.plan-price{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1}
+.plan-price sup{font-size:14px;vertical-align:super;color:var(--gray)}
+.plan-period{font-size:11px;color:var(--gray);margin-top:2px}
+.plan-feat{font-size:12px;color:#aaa;padding:3px 0 3px 14px;position:relative}
+.plan-feat::before{content:'✓';position:absolute;left:0;color:var(--green2);font-weight:700}
+.plan-feat.off{color:var(--gray);text-decoration:line-through}
+.plan-feat.off::before{content:'✗';color:var(--gray)}
+.plan-features{margin-top:14px}
+.paywall-divider{text-align:center;font-size:11px;color:var(--gray);margin:16px 0;letter-spacing:.1em;text-transform:uppercase}
+.trial-note{text-align:center;font-size:12px;color:var(--gray);margin-top:14px}
+.trial-note strong{color:var(--white)}
+.paywall-out{text-align:center;font-size:12px;color:var(--gray);margin-top:14px;cursor:pointer}
+.paywall-out:hover{color:var(--red)}
+
+/* ── MAIN APP ── */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em}
+.nav-logo span{color:var(--red)}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.nav-tab:hover{color:var(--white)}
+.nav-tab.active{color:var(--white);border-bottom-color:var(--red)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{font-size:12px;color:var(--gray)}
+.nav-user strong{color:var(--white)}
+.badge-plan{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;padding:3px 9px}
+.badge-pro{background:var(--red);color:#fff}
+.badge-free{background:var(--gray2);color:var(--gray)}
+.btn-sm{padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--gray);cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--red);color:var(--white)}
+
+.app{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 52px)}
+@media(max-width:700px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0}
+.sb-section{padding:0 16px;margin-bottom:20px}
+.sb-label{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);margin-bottom:8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;cursor:pointer;transition:background .15s;color:var(--gray);font-size:13px;margin-bottom:2px}
+.sb-item:hover{background:var(--bg3);color:var(--white)}
+.sb-item.active{background:var(--bg4);color:var(--white)}
+.sb-icon{width:16px;font-size:14px;text-align:center;flex-shrink:0}
+.sb-divider{height:1px;background:var(--border);margin:12px 16px}
+.sb-budget{padding:12px 16px;margin:0 12px;background:var(--bg3);border:1px solid var(--border)}
+.sb-budget-label{font-size:10px;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.sb-vals{display:flex;justify-content:space-between;font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:2px}
+.sb-bar{height:4px;background:var(--bg4);border-radius:2px;margin:6px 0 4px}
+.sb-fill{height:100%;border-radius:2px;transition:width .4s}
+.sb-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--gray)}
+
+main{padding:24px;overflow-x:hidden}
+@media(max-width:700px){main{padding:16px 14px 80px}}
+.page{display:none}.page.active{display:block}
+
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1}
+.page-title span{color:var(--red)}
+.page-sub{font-size:13px;color:var(--gray);margin-top:2px}
+.btn-primary{padding:9px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--red);color:#fff;border:none;cursor:pointer;transition:background .15s}
+.btn-primary:hover{background:var(--red2)}
+.btn-outline{padding:9px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--white);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.btn-outline:hover{border-color:var(--gray)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.mcard{background:var(--bg2);border:1px solid var(--border);padding:16px 18px;position:relative;overflow:hidden}
+.mcard::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px}
+.mcard.c-green::before{background:var(--green)}
+.mcard.c-red::before{background:var(--red)}
+.mcard.c-gold::before{background:var(--gold)}
+.mcard.c-blue::before{background:var(--blue2)}
+.mcard-label{font-size:11px;color:var(--gray);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.mcard-val{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1}
+.mcard-val.green{color:var(--green2)}.mcard-val.red{color:var(--red2)}.mcard-val.gold{color:var(--gold)}.mcard-val.blue{color:var(--blue2)}
+.mcard-sub{font-size:11px;color:var(--gray);margin-top:4px}
+.mcard-delta{font-size:11px;margin-top:4px}
+.mcard-delta.up{color:var(--green2)}.mcard-delta.down{color:var(--red2)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+.panel{background:var(--bg2);border:1px solid var(--border);padding:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.panel-action{font-size:12px;color:var(--red);cursor:pointer;background:none;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px;font-size:13px;border-bottom:1px solid var(--border)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.cat-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.amt-neg{color:var(--red2)}.amt-pos{color:var(--green2)}
+.status-pill{font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 8px;text-transform:uppercase}
+.pill-ok{background:rgba(30,132,73,.15);color:#2ECC71}
+.pill-warn{background:rgba(212,172,13,.15);color:var(--gold)}
+.del-btn{background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px;padding:2px 6px}
+.del-btn:hover{color:var(--red2)}
+
+.prog-row{margin-bottom:14px}
+.prog-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.prog-name{color:var(--white);font-weight:500}
+.prog-val{color:var(--gray)}
+.prog-bar{height:6px;background:var(--bg4);border-radius:1px}
+.prog-fill{height:100%;border-radius:1px;transition:width .6s}
+
+.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut-legend{flex:1;min-width:140px}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
+.legend-dot{width:10px;height:10px;flex-shrink:0}
+.legend-pct{margin-left:auto;color:var(--gray);font-size:12px}
+
+.goal-card{background:var(--bg3);border:1px solid var(--border);padding:16px;margin-bottom:12px}
+.goal-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.goal-name{font-size:14px;font-weight:500}
+.goal-target{font-size:12px;color:var(--gray)}
+.goal-current{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)}
+.goal-bar{height:4px;background:var(--bg4);margin:8px 0 4px}
+.goal-fill{height:100%;background:var(--gold)}
+.goal-footer{display:flex;justify-content:space-between;font-size:11px;color:var(--gray)}
+.goal-actions{display:flex;gap:6px;margin-top:10px}
+.goal-btn{font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer}
+.goal-btn:hover{border-color:var(--gold);color:var(--gold)}
+.goal-btn.danger:hover{border-color:var(--red);color:var(--red2)}
+
+.renda-card{background:var(--bg3);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.renda-icon{width:36px;height:36px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.renda-body{flex:1}
+.renda-name{font-size:13px;font-weight:500}
+.renda-type{font-size:11px;color:var(--gray)}
+.renda-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green2)}
+
+.limit-banner{background:rgba(212,172,13,.08);border:1px solid rgba(212,172,13,.25);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.limit-banner p{font-size:13px;color:var(--gold)}
+.limit-banner button{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;background:var(--gold);color:#000;border:none;cursor:pointer}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--gray);font-size:13px}
+.empty-state p{margin-bottom:12px}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px}
+.modal-close:hover{color:var(--white)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.fm{display:flex;flex-direction:column;gap:6px}
+.fm label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray)}
+.fm input,.fm select{background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:9px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;width:100%}
+.fm input:focus,.fm select:focus{border-color:var(--red)}
+.fm select option{background:var(--bg3)}
+.form-actions{display:flex;gap:10px;margin-top:16px}
+
+.mobile-nav{display:none;background:var(--bg2);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:100}
+@media(max-width:700px){.mobile-nav{display:flex}}
+.mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);cursor:pointer;border:none;background:none}
+.mnav-item.active{color:var(--red)}
+.mnav-icon{font-size:18px}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:100vh">
+    <div style="text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.06em;margin-bottom:16px">PREDADOR<span style="color:#C0392B">FIN</span></div>
+      <div style="width:200px;height:3px;background:#222;border-radius:2px;margin:0 auto">
+        <div style="height:100%;background:#C0392B;border-radius:2px;animation:load 1.2s ease forwards" id="loader-bar"></div>
+      </div>
+      <div style="font-size:12px;color:#777;margin-top:12px;letter-spacing:.1em;text-transform:uppercase">Carregando...</div>
+    </div>
+  </div>
+</div>
+<style>@keyframes load{from{width:0}to{width:100%}}</style>
+
+<!-- LOGIN -->
+<div class="screen" id="screen-login">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">PREDADOR<span>FIN</span></div>
+      <div class="auth-tagline">Controle financeiro para quem executa</div>
+      <div class="auth-title">Entrar na conta</div>
+      <div class="msg-error" id="login-err"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-full" id="login-btn" onclick="doLogin()">Entrar</button>
+      <button class="btn-full outline" onclick="go('screen-register')">Criar conta grátis</button>
+      <p class="auth-switch">Esqueceu a senha? <a onclick="go('screen-reset')">Recuperar</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- CADASTRO -->
+<div class="screen" id="screen-register">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">PREDADOR<span>FIN</span></div>
+      <div class="auth-tagline">7 dias grátis. Sem cartão.</div>
+      <div class="auth-title">Criar conta</div>
+      <div class="msg-error" id="reg-err"></div>
+      <div class="msg-ok" id="reg-ok"></div>
+      <div class="field"><label>Nome</label><input type="text" id="reg-name" placeholder="Seu nome"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com"></div>
+      <div class="field"><label>Senha</label><input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="field"><label>Confirmar senha</label><input type="password" id="reg-pass2" placeholder="Repita a senha"></div>
+      <button class="btn-full" id="reg-btn" onclick="doRegister()">Criar conta grátis</button>
+      <p class="auth-switch">Já tem conta? <a onclick="go('screen-login')">Entrar</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- RESET SENHA -->
+<div class="screen" id="screen-reset">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">PREDADOR<span>FIN</span></div>
+      <div class="auth-tagline">Recuperar acesso</div>
+      <div class="auth-title">Redefinir senha</div>
+      <div class="msg-ok" id="reset-ok"></div>
+      <div class="field"><label>E-mail cadastrado</label><input type="email" id="reset-email" placeholder="seu@email.com"></div>
+      <button class="btn-full" onclick="doReset()">Enviar link de recuperação</button>
+      <button class="btn-full outline" onclick="go('screen-login')">Voltar ao login</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYWALL -->
+<div class="screen" id="screen-paywall">
+  <div class="paywall-wrap">
+    <div class="paywall-box">
+      <div class="auth-logo">PREDADOR<span style="color:#C0392B">FIN</span></div>
+      <div style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:28px">Escolha seu plano</div>
+      <div class="plan-cards">
+        <div class="plan-card" id="plan-free" onclick="selPlan('free')">
+          <div class="plan-badge">Gratuito</div>
+          <div class="plan-name">Starter</div>
+          <div class="plan-price"><sup>R$</sup>0</div>
+          <div class="plan-period">para sempre</div>
+          <div class="plan-features">
+            <div class="plan-feat">Até 10 gastos/mês</div>
+            <div class="plan-feat">2 metas ativas</div>
+            <div class="plan-feat">Dashboard básico</div>
+            <div class="plan-feat off">Exportar dados</div>
+          </div>
+        </div>
+        <div class="plan-card selected" id="plan-pro" onclick="selPlan('pro')">
+          <div class="plan-badge">Recomendado</div>
+          <div class="plan-name">Predador PRO</div>
+          <div class="plan-price"><sup>R$</sup>27</div>
+          <div class="plan-period">por mês</div>
+          <div class="plan-features">
+            <div class="plan-feat">Gastos ilimitados</div>
+            <div class="plan-feat">Metas ilimitadas</div>
+            <div class="plan-feat">Dashboard completo</div>
+            <div class="plan-feat">Exportar dados</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-full" id="paywall-btn" onclick="ativarPlano()">Começar 7 dias grátis — PRO</button>
+      <div class="paywall-divider">— ou —</div>
+      <button class="btn-full outline" onclick="ativarFree()">Continuar com Starter gratuito</button>
+      <p class="trial-note"><strong>7 dias grátis</strong> no PRO, depois R$27/mês. Cancele quando quiser.</p>
+      <p class="paywall-out" onclick="doLogout()">Sair da conta</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div class="screen" id="screen-app">
+<nav>
+  <div class="nav-logo">PREDADOR<span>FIN</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('gastos',this)">Gastos</button>
+    <button class="nav-tab" onclick="showPage('metas',this)">Metas</button>
+    <button class="nav-tab" onclick="showPage('renda',this)">Renda</button>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">Olá, <strong id="nav-name">—</strong></span>
+    <span class="badge-plan badge-pro" id="nav-badge">PRO</span>
+    <button class="btn-sm" onclick="doLogout()">Sair</button>
+  </div>
+</nav>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Navegação</div>
+      <div class="sb-item active" onclick="showPage('dashboard',null)"><span class="sb-icon">◈</span>Dashboard</div>
+      <div class="sb-item" onclick="showPage('gastos',null)"><span class="sb-icon">↓</span>Gastos</div>
+      <div class="sb-item" onclick="showPage('metas',null)"><span class="sb-icon">◎</span>Metas</div>
+      <div class="sb-item" onclick="showPage('renda',null)"><span class="sb-icon">↑</span>Renda</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Orçamento mensal</div>
+      <div class="sb-budget">
+        <div class="sb-budget-label" id="sb-month">—</div>
+        <div class="sb-vals"><span id="sb-spent" style="color:var(--red2)">R$0</span><span id="sb-total" style="color:var(--gray)">/ R$5.000</span></div>
+        <div class="sb-bar"><div class="sb-fill" id="sb-fill" style="background:var(--gold)"></div></div>
+        <div class="sb-nums"><span id="sb-pct">0% usado</span><span id="sb-free" style="color:var(--green2)">R$5.000 livre</span></div>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Ações rápidas</div>
+      <div class="sb-item" onclick="openModal('m-gasto')"><span class="sb-icon">+</span>Novo gasto</div>
+      <div class="sb-item" onclick="openModal('m-meta')"><span class="sb-icon">+</span>Nova meta</div>
+      <div class="sb-item" onclick="openModal('m-renda')"><span class="sb-icon">+</span>Nova renda</div>
+      <div class="sb-item" onclick="go('screen-paywall')"><span class="sb-icon">★</span>Meu plano</div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div><div class="page-title">VISÃO <span>GERAL</span></div><div class="page-sub" id="dash-sub">—</div></div>
+        <button class="btn-primary" onclick="openModal('m-gasto')">+ Registrar gasto</button>
+      </div>
+      <div class="metrics">
+        <div class="mcard c-green"><div class="mcard-label">Renda total</div><div class="mcard-val green" id="d-renda">0</div><div class="mcard-sub">R$ este mês</div></div>
+        <div class="mcard c-red"><div class="mcard-label">Gastos totais</div><div class="mcard-val red" id="d-gastos">0</div><div class="mcard-sub">R$ este mês</div></div>
+        <div class="mcard c-gold"><div class="mcard-label">Saldo livre</div><div class="mcard-val gold" id="d-saldo">0</div><div class="mcard-sub">R$ disponível</div></div>
+        <div class="mcard c-blue"><div class="mcard-label">Metas ativas</div><div class="mcard-val blue" id="d-metas">0</div><div class="mcard-sub">em andamento</div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Gastos por categoria</span></div>
+          <div id="donut-area"><div class="empty-state"><p>Nenhum gasto ainda.</p></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Últimas transações</span><button class="panel-action" onclick="showPage('gastos',null)">Ver todas</button></div>
+          <table class="tbl"><thead><tr><th>Descrição</th><th>Cat.</th><th>Valor</th></tr></thead><tbody id="recent-tx"><tr><td colspan="3" class="empty-state">Nenhuma transação.</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GASTOS -->
+    <div class="page" id="page-gastos">
+      <div class="page-header">
+        <div><div class="page-title">CONTROLE DE <span>GASTOS</span></div><div class="page-sub">Cada real contabilizado</div></div>
+        <button class="btn-primary" onclick="openModal('m-gasto')">+ Novo gasto</button>
+      </div>
+      <div id="banner-gastos" class="limit-banner" style="display:none">
+        <p>Plano gratuito: <strong id="gastos-count">0/10</strong> gastos utilizados este mês.</p>
+        <button onclick="go('screen-paywall')">Upgrade PRO</button>
+      </div>
+      <div class="metrics">
+        <div class="mcard c-red"><div class="mcard-label">Total do mês</div><div class="mcard-val red" id="g-total">0</div><div class="mcard-sub">R$ em gastos</div></div>
+        <div class="mcard c-gold"><div class="mcard-label">Maior categoria</div><div class="mcard-val gold" id="g-top">—</div><div class="mcard-sub" id="g-top-val">—</div></div>
+        <div class="mcard c-green"><div class="mcard-label">Orçamento livre</div><div class="mcard-val green" id="g-livre">5.000</div><div class="mcard-sub">de R$5.000</div></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">Por categoria</span></div>
+        <div id="cat-prog"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Todas as transações</span></div>
+        <table class="tbl"><thead><tr><th>Descrição</th><th>Categoria</th><th>Data</th><th>Valor</th><th>Tipo</th><th></th></tr></thead><tbody id="all-tx"><tr><td colspan="6" class="empty-state">Nenhum gasto registrado.</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- METAS -->
+    <div class="page" id="page-metas">
+      <div class="page-header">
+        <div><div class="page-title">METAS <span>FINANCEIRAS</span></div><div class="page-sub">Defina alvos. Execute.</div></div>
+        <button class="btn-primary" onclick="openModal('m-meta')">+ Nova meta</button>
+      </div>
+      <div id="banner-metas" class="limit-banner" style="display:none">
+        <p>Plano gratuito: até 2 metas ativas.</p>
+        <button onclick="go('screen-paywall')">Upgrade PRO</button>
+      </div>
+      <div class="metrics">
+        <div class="mcard c-gold"><div class="mcard-label">Metas ativas</div><div class="mcard-val gold" id="m-ativas">0</div><div class="mcard-sub">em andamento</div></div>
+        <div class="mcard c-green"><div class="mcard-label">Concluídas</div><div class="mcard-val green" id="m-done">0</div><div class="mcard-sub">este ano</div></div>
+        <div class="mcard c-blue"><div class="mcard-label">Total guardado</div><div class="mcard-val blue" id="m-saved">0</div><div class="mcard-sub">R$ acumulado</div></div>
+      </div>
+      <div id="goals-list"><div class="empty-state"><p>Nenhuma meta criada ainda.</p></div></div>
+    </div>
+
+    <!-- RENDA -->
+    <div class="page" id="page-renda">
+      <div class="page-header">
+        <div><div class="page-title">CONTROLE DE <span>RENDA</span></div><div class="page-sub">Todas as entradas</div></div>
+        <button class="btn-primary" onclick="openModal('m-renda')">+ Nova renda</button>
+      </div>
+      <div class="metrics">
+        <div class="mcard c-green"><div class="mcard-label">Renda total</div><div class="mcard-val green" id="r-total">0</div><div class="mcard-sub">R$ este mês</div></div>
+        <div class="mcard c-blue"><div class="mcard-label">Renda fixa</div><div class="mcard-val blue" id="r-fixa">0</div><div class="mcard-sub" id="r-fixa-p">0%</div></div>
+        <div class="mcard c-gold"><div class="mcard-label">Renda variável</div><div class="mcard-val gold" id="r-var">0</div><div class="mcard-sub" id="r-var-p">0%</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Fontes de renda</span><button class="panel-action" onclick="openModal('m-renda')">+ Adicionar</button></div>
+        <div id="renda-list"><div class="empty-state"><p>Nenhuma renda registrada.</p></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-nav">
+  <button class="mnav-item active" onclick="showPage('dashboard',this)"><span class="mnav-icon">◈</span>Início</button>
+  <button class="mnav-item" onclick="showPage('gastos',this)"><span class="mnav-icon">↓</span>Gastos</button>
+  <button class="mnav-item" onclick="showPage('metas',this)"><span class="mnav-icon">◎</span>Metas</button>
+  <button class="mnav-item" onclick="showPage('renda',this)"><span class="mnav-icon">↑</span>Renda</button>
+</nav>
+</div><!-- /screen-app -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="m-gasto">
+  <div class="modal">
+    <div class="modal-title">Registrar gasto <button class="modal-close" onclick="closeModal('m-gasto')">✕</button></div>
+    <div class="form-grid">
+      <div class="fm" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Mercado, Aluguel..."></div>
+      <div class="fm"><label>Valor (R$)</label><input type="number" id="g-val" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="fm"><label>Data</label><input type="date" id="g-date"></div>
+      <div class="fm"><label>Categoria</label>
+        <select id="g-cat"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Lazer</option><option>Educação</option><option>Outros</option></select>
+      </div>
+      <div class="fm"><label>Tipo</label>
+        <select id="g-tipo"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="g-save" onclick="addGasto()">Salvar</button>
+      <button class="btn-outline" onclick="closeModal('m-gasto')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-meta">
+  <div class="modal">
+    <div class="modal-title">Nova meta <button class="modal-close" onclick="closeModal('m-meta')">✕</button></div>
+    <div class="form-grid">
+      <div class="fm" style="grid-column:1/-1"><label>Nome da meta</label><input type="text" id="mt-nome" placeholder="Ex: Reserva de emergência"></div>
+      <div class="fm"><label>Valor alvo (R$)</label><input type="number" id="mt-alvo" placeholder="10.000" min="0"></div>
+      <div class="fm"><label>Já guardado (R$)</label><input type="number" id="mt-atual" placeholder="0" min="0"></div>
+      <div class="fm"><label>Prazo</label><input type="month" id="mt-prazo"></div>
+      <div class="fm"><label>Prioridade</label><select id="mt-prio"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="mt-save" onclick="addMeta()">Criar meta</button>
+      <button class="btn-outline" onclick="closeModal('m-meta')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-deposit">
+  <div class="modal">
+    <div class="modal-title">Adicionar à meta <button class="modal-close" onclick="closeModal('m-deposit')">✕</button></div>
+    <input type="hidden" id="dep-id">
+    <div class="fm"><label>Valor a adicionar (R$)</label><input type="number" id="dep-val" placeholder="0,00" min="0" step="0.01"></div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="doDeposit()">Confirmar</button>
+      <button class="btn-outline" onclick="closeModal('m-deposit')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="m-renda">
+  <div class="modal">
+    <div class="modal-title">Nova renda <button class="modal-close" onclick="closeModal('m-renda')">✕</button></div>
+    <div class="form-grid">
+      <div class="fm" style="grid-column:1/-1"><label>Fonte</label><input type="text" id="r-nome" placeholder="Ex: Salário, Freelance..."></div>
+      <div class="fm"><label>Valor (R$)</label><input type="number" id="r-val" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="fm"><label>Tipo</label><select id="r-tipo"><option>Renda fixa</option><option>Renda variável</option><option>Investimento</option></select></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="r-save" onclick="addRenda()">Salvar</button>
+      <button class="btn-outline" onclick="closeModal('m-renda')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// SUPABASE INIT
+// ══════════════════════════════════════════
+const SUPA_URL = 'https://pkrgclznrhabcwwcaxgd.supabase.co'
+const SUPA_KEY = 'sb_publishable__CkBIKGynJzqgtvUnApssw_Wio7sycL'
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY)
+
+const BUDGET = 5000
+const FREE_GASTOS = 10
+const FREE_METAS  = 2
+const catColors = {Moradia:'#C0392B',Alimentação:'#D4AC0D',Transporte:'#1A5276',Saúde:'#8E44AD',Lazer:'#1E8449',Educação:'#2980B9',Outros:'#555'}
+const catBudgets= {Moradia:2000,Alimentação:1000,Transporte:600,Saúde:400,Lazer:400,Educação:300,Outros:300}
+const rendaIcons= {'Renda fixa':'◈','Renda variável':'↑','Investimento':'★'}
+
+let state = { user:null, profile:null, gastos:[], metas:[], renda:[] }
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+}
+
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.getElementById('page-'+id).classList.add('active')
+  document.querySelectorAll('.nav-tab,.sb-item,.mnav-item').forEach(t=>t.classList.remove('active'))
+  const map={dashboard:0,gastos:1,metas:2,renda:3}
+  const i=map[id]
+  ;['.nav-tab','.sb-item','.mnav-item'].forEach(sel=>{
+    const els=document.querySelectorAll(sel)
+    if(els[i])els[i].classList.add('active')
+  })
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open') }
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.modal-overlay').forEach(m=>
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') })
+)
+
+function setLoading(btnId, loading){
+  const b = document.getElementById(btnId)
+  if(!b) return
+  b.disabled = loading
+  b.textContent = loading ? 'Aguarde...' : b.dataset.text||b.textContent
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim()
+  const pass  = document.getElementById('login-pass').value
+  const err   = document.getElementById('login-err')
+  err.classList.remove('show')
+  if(!email||!pass){ err.textContent='Preencha e-mail e senha.'; err.classList.add('show'); return }
+  document.getElementById('login-btn').disabled=true
+  document.getElementById('login-btn').textContent='Entrando...'
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass })
+  document.getElementById('login-btn').disabled=false
+  document.getElementById('login-btn').textContent='Entrar'
+  if(error){ err.textContent = error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':error.message; err.classList.add('show'); return }
+  await loadApp(data.user)
+}
+
+async function doRegister(){
+  const name  = document.getElementById('reg-name').value.trim()
+  const email = document.getElementById('reg-email').value.trim()
+  const pass  = document.getElementById('reg-pass').value
+  const pass2 = document.getElementById('reg-pass2').value
+  const err   = document.getElementById('reg-err')
+  const ok    = document.getElementById('reg-ok')
+  err.classList.remove('show'); ok.classList.remove('show')
+  if(!name||!email||!pass||!pass2){ err.textContent='Preencha todos os campos.'; err.classList.add('show'); return }
+  if(pass.length<6){ err.textContent='Senha deve ter no mínimo 6 caracteres.'; err.classList.add('show'); return }
+  if(pass!==pass2){ err.textContent='As senhas não coincidem.'; err.classList.add('show'); return }
+  document.getElementById('reg-btn').disabled=true
+  document.getElementById('reg-btn').textContent='Criando conta...'
+  const { data, error } = await supa.auth.signUp({
+    email, password: pass,
+    options: { data: { name } }
+  })
+  document.getElementById('reg-btn').disabled=false
+  document.getElementById('reg-btn').textContent='Criar conta grátis'
+  if(error){ err.textContent=error.message; err.classList.add('show'); return }
+  if(data.user){
+    ok.textContent='Conta criada! Redirecionando...'
+    ok.classList.add('show')
+    setTimeout(()=>loadApp(data.user), 1200)
+  } else {
+    ok.textContent='Verifique seu e-mail para confirmar o cadastro.'
+    ok.classList.add('show')
+  }
+}
+
+async function doReset(){
+  const email = document.getElementById('reset-email').value.trim()
+  const ok    = document.getElementById('reset-ok')
+  await supa.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
+  ok.textContent='Se este e-mail estiver cadastrado, você receberá as instruções.'
+  ok.classList.add('show')
+}
+
+async function doLogout(){
+  await supa.auth.signOut()
+  state = { user:null, profile:null, gastos:[], metas:[], renda:[] }
+  go('screen-login')
+}
+
+// ══════════════════════════════════════════
+// PAYWALL
+// ══════════════════════════════════════════
+let selPlanVal = 'pro'
+function selPlan(p){
+  selPlanVal = p
+  document.getElementById('plan-free').classList.toggle('selected', p==='free')
+  document.getElementById('plan-pro').classList.toggle('selected', p==='pro')
+  document.getElementById('paywall-btn').textContent = p==='pro'
+    ? 'Começar 7 dias grátis — PRO'
+    : 'Usar plano Starter'
+}
+
+async function ativarPlano(){
+  // Em produção: redirecionar para Stripe Checkout
+  // Por ora: ativa trial PRO no Supabase
+  const { error } = await supa.from('profiles').update({
+    plan: 'trial',
+    trial_end: new Date(Date.now() + 7*86400000).toISOString()
+  }).eq('id', state.user.id)
+  if(!error){
+    state.profile.plan = 'trial'
+    await loadApp(state.user)
+  }
+}
+
+async function ativarFree(){
+  await supa.from('profiles').update({ plan:'free' }).eq('id', state.user.id)
+  state.profile.plan = 'free'
+  await loadApp(state.user)
+}
+
+function isPro(){
+  if(!state.profile) return false
+  if(state.profile.plan==='pro') return true
+  if(state.profile.plan==='trial'){
+    return new Date(state.profile.trial_end) > new Date()
+  }
+  return false
+}
+
+// ══════════════════════════════════════════
+// LOAD APP
+// ══════════════════════════════════════════
+async function loadApp(user){
+  state.user = user
+  // Buscar perfil
+  let { data: profile } = await supa.from('profiles').select('*').eq('id', user.id).single()
+  if(!profile){
+    await supa.from('profiles').insert({
+      id: user.id,
+      name: user.user_metadata?.name || user.email.split('@')[0],
+      plan: 'trial',
+      trial_end: new Date(Date.now()+7*86400000).toISOString()
+    })
+    const { data: p2 } = await supa.from('profiles').select('*').eq('id', user.id).single()
+    profile = p2
+  }
+  state.profile = profile
+
+  // Mostrar paywall se não tem plano definido
+  const hasPlan = profile && (profile.plan==='pro' || profile.plan==='free' ||
+    (profile.plan==='trial' && new Date(profile.trial_end) > new Date()))
+  if(!hasPlan){ go('screen-paywall'); return }
+
+  // Buscar dados
+  await fetchAll()
+
+  // Atualizar UI
+  const name = profile.name || user.email.split('@')[0]
+  document.getElementById('nav-name').textContent = name.split(' ')[0]
+  const badge = document.getElementById('nav-badge')
+  if(isPro()){ badge.textContent='PRO'; badge.className='badge-plan badge-pro' }
+  else        { badge.textContent='FREE'; badge.className='badge-plan badge-free' }
+
+  const now = new Date()
+  const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const ms = `${months[now.getMonth()]} ${now.getFullYear()}`
+  document.getElementById('sb-month').textContent = ms
+  document.getElementById('dash-sub').textContent = `${ms} — em tempo real`
+  document.getElementById('g-date').value = now.toISOString().split('T')[0]
+
+  go('screen-app')
+  renderAll()
+  showPage('dashboard', null)
+}
+
+async function fetchAll(){
+  const [g, m, r] = await Promise.all([
+    supa.from('gastos').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
+    supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
+    supa.from('rendas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
+  ])
+  state.gastos = g.data || []
+  state.metas  = m.data || []
+  state.renda  = r.data || []
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function n(v){ return Math.round(v).toLocaleString('pt-BR') }
+
+function renderAll(){
+  renderSidebar()
+  renderDashboard()
+  renderGastos()
+  renderMetas()
+  renderRenda()
+}
+
+function renderSidebar(){
+  const total = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
+  const pct   = Math.min(100, Math.round((total/BUDGET)*100))
+  const livre = Math.max(0, BUDGET-total)
+  document.getElementById('sb-spent').textContent = 'R$'+n(total)
+  document.getElementById('sb-pct').textContent   = pct+'% usado'
+  document.getElementById('sb-free').textContent  = 'R$'+n(livre)+' livre'
+  const fill = document.getElementById('sb-fill')
+  fill.style.width    = pct+'%'
+  fill.style.background = pct>80?'var(--red)':pct>60?'var(--gold)':'var(--green)'
+}
+
+function renderDashboard(){
+  const totalG = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
+  const totalR = state.renda.reduce((s,r)=>s+Number(r.valor),0)
+  const saldo  = totalR - totalG
+  document.getElementById('d-renda').textContent  = n(totalR)
+  document.getElementById('d-gastos').textContent = n(totalG)
+  document.getElementById('d-saldo').textContent  = n(Math.abs(saldo))
+  document.getElementById('d-saldo').className    = 'mcard-val '+(saldo>=0?'gold':'red')
+  document.getElementById('d-metas').textContent  = state.metas.filter(m=>!m.concluida).length
+
+  const recent = state.gastos.slice(0,5)
+  const rt = document.getElementById('recent-tx')
+  rt.innerHTML = !recent.length
+    ? '<tr><td colspan="3" style="color:var(--gray);text-align:center;padding:20px">Nenhuma transação ainda.</td></tr>'
+    : recent.map(g=>`<tr>
+        <td>${g.descricao}</td>
+        <td><span class="cat-dot" style="background:${catColors[g.categoria]||'#555'}"></span>${g.categoria}</td>
+        <td class="amt-neg">-R$${n(Number(g.valor))}</td>
+      </tr>`).join('')
+
+  const cats = {}
+  state.gastos.forEach(g=>{ cats[g.categoria]=(cats[g.categoria]||0)+Number(g.valor) })
+  const donut = document.getElementById('donut-area')
+  if(!Object.keys(cats).length){ donut.innerHTML='<div class="empty-state"><p>Nenhum gasto ainda.</p></div>'; return }
+  const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1])
+  const tot = Object.values(cats).reduce((s,v)=>s+v,0)
+  let off=0
+  const circles = entries.map(([cat,val])=>{
+    const d=val/tot*239.27
+    const c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${catColors[cat]||'#555'}" stroke-width="16" stroke-dasharray="${d.toFixed(1)} ${(239.27-d).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 50 50)"/>`
+    off+=d; return c
+  })
+  donut.innerHTML=`
+    <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0">
+      <circle cx="50" cy="50" r="38" fill="none" stroke="#222" stroke-width="16"/>
+      ${circles.join('')}
+      <text x="50" y="47" text-anchor="middle" fill="#F0EFE8" font-family="Bebas Neue,sans-serif" font-size="14">${n(tot)}</text>
+      <text x="50" y="57" text-anchor="middle" fill="#777" font-size="7">total</text>
+    </svg>
+    <div class="donut-legend">${entries.slice(0,5).map(([cat,val])=>`
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${catColors[cat]||'#555'}"></div>${cat}
+        <span class="legend-pct">${Math.round(val/tot*100)}%</span>
+      </div>`).join('')}
+    </div>`
+}
+
+function renderGastos(){
+  const total = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
+  document.getElementById('g-total').textContent = n(total)
+  document.getElementById('g-livre').textContent = n(Math.max(0,BUDGET-total))
+  const cats = {}
+  state.gastos.forEach(g=>{ cats[g.categoria]=(cats[g.categoria]||0)+Number(g.valor) })
+  const top = Object.entries(cats).sort((a,b)=>b[1]-a[1])[0]
+  if(top){ document.getElementById('g-top').textContent=top[0]; document.getElementById('g-top-val').textContent='R$'+n(top[1]) }
+
+  const cp = document.getElementById('cat-prog')
+  cp.innerHTML = !Object.keys(cats).length
+    ? '<div class="empty-state"><p>Nenhum gasto registrado.</p></div>'
+    : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>{
+        const b=catBudgets[cat]||500
+        const p=Math.min(100,Math.round(val/b*100))
+        const c=p>90?'var(--red)':p>70?'var(--gold)':'var(--green)'
+        return `<div class="prog-row">
+          <div class="prog-top"><span class="prog-name">${cat}</span><span class="prog-val">R$${n(val)} / R$${n(b)}</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${c}"></div></div>
+        </div>`
+      }).join('')
+
+  if(!isPro()){
+    document.getElementById('banner-gastos').style.display='flex'
+    document.getElementById('gastos-count').textContent=`${state.gastos.length}/${FREE_GASTOS}`
+  } else {
+    document.getElementById('banner-gastos').style.display='none'
+  }
+
+  const tb = document.getElementById('all-tx')
+  tb.innerHTML = !state.gastos.length
+    ? '<tr><td colspan="6" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
+    : state.gastos.map(g=>`<tr>
+        <td>${g.descricao}</td>
+        <td><span class="cat-dot" style="background:${catColors[g.categoria]||'#555'}"></span>${g.categoria}</td>
+        <td>${g.data||'—'}</td>
+        <td class="amt-neg">-R$${n(Number(g.valor))}</td>
+        <td><span class="status-pill ${g.tipo==='Fixo'?'pill-ok':'pill-warn'}">${g.tipo}</span></td>
+        <td><button class="del-btn" onclick="delGasto('${g.id}')">✕</button></td>
+      </tr>`).join('')
+}
+
+function renderMetas(){
+  const ativas = state.metas.filter(m=>!m.concluida)
+  const done   = state.metas.filter(m=>m.concluida)
+  const saved  = state.metas.reduce((s,m)=>s+Number(m.atual),0)
+  document.getElementById('m-ativas').textContent = ativas.length
+  document.getElementById('m-done').textContent   = done.length
+  document.getElementById('m-saved').textContent  = n(saved)
+
+  document.getElementById('banner-metas').style.display = (!isPro()&&ativas.length>=FREE_METAS)?'flex':'none'
+
+  const gl = document.getElementById('goals-list')
+  if(!state.metas.length){ gl.innerHTML='<div class="empty-state"><p>Nenhuma meta criada.</p></div>'; return }
+  gl.innerHTML = state.metas.map(m=>{
+    const pct=Math.min(100,Math.round(Number(m.atual)/Number(m.alvo)*100))
+    const st =m.concluida?'pill-ok':pct>80?'pill-ok':pct>40?'pill-warn':'pill-danger'
+    const stT=m.concluida?'Concluída':pct>80?'Quase lá':pct>40?'Em andamento':'Início'
+    const col=m.concluida?'var(--green2)':'var(--gold)'
+    return `<div class="goal-card">
+      <div class="goal-top">
+        <div><div class="goal-name">${m.nome}</div><div class="goal-target">Meta: R$${n(Number(m.alvo))} · Prazo: ${m.prazo||'—'}</div></div>
+        <span class="status-pill ${st}">${stT}</span>
+      </div>
+      <div class="goal-current" style="color:${col}">R$${n(Number(m.atual))}</div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="goal-footer"><span>${pct}% concluído</span><span>Faltam R$${n(Math.max(0,Number(m.alvo)-Number(m.atual)))}</span></div>
+      <div class="goal-actions">
+        ${!m.concluida?`<button class="goal-btn" onclick="openDeposit('${m.id}')">+ Adicionar valor</button>`:''}
+        <button class="goal-btn danger" onclick="delMeta('${m.id}')">Excluir</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function renderRenda(){
+  const total = state.renda.reduce((s,r)=>s+Number(r.valor),0)
+  const fixa  = state.renda.filter(r=>r.tipo==='Renda fixa').reduce((s,r)=>s+Number(r.valor),0)
+  const vari  = total-fixa
+  document.getElementById('r-total').textContent = n(total)
+  document.getElementById('r-fixa').textContent  = n(fixa)
+  document.getElementById('r-var').textContent   = n(vari)
+  document.getElementById('r-fixa-p').textContent= total?Math.round(fixa/total*100)+'% do total':'0%'
+  document.getElementById('r-var-p').textContent = total?Math.round(vari/total*100)+'% do total':'0%'
+  const rl = document.getElementById('renda-list')
+  rl.innerHTML = !state.renda.length
+    ? '<div class="empty-state"><p>Nenhuma renda registrada.</p></div>'
+    : state.renda.map(r=>`
+      <div class="renda-card">
+        <div class="renda-icon">${rendaIcons[r.tipo]||'◈'}</div>
+        <div class="renda-body"><div class="renda-name">${r.nome}</div><div class="renda-type">${r.tipo}</div></div>
+        <div class="renda-val">R$${n(Number(r.valor))}</div>
+        <button class="del-btn" onclick="delRenda('${r.id}')">✕</button>
+      </div>`).join('')
+}
+
+// ══════════════════════════════════════════
+// CRUD — Supabase
+// ══════════════════════════════════════════
+async function addGasto(){
+  const desc = document.getElementById('g-desc').value.trim()
+  const val  = parseFloat(document.getElementById('g-val').value)
+  const cat  = document.getElementById('g-cat').value
+  const tipo = document.getElementById('g-tipo').value
+  const date = document.getElementById('g-date').value
+  if(!desc||!val||val<=0){ alert('Preencha descrição e valor.'); return }
+  if(!isPro()&&state.gastos.length>=FREE_GASTOS){ alert('Limite do plano gratuito atingido.'); closeModal('m-gasto'); go('screen-paywall'); return }
+  document.getElementById('g-save').disabled=true
+  const { data, error } = await supa.from('gastos').insert({
+    user_id: state.user.id, descricao:desc, valor:val, categoria:cat, tipo, data:date||new Date().toISOString().split('T')[0]
+  }).select().single()
+  document.getElementById('g-save').disabled=false
+  if(error){ alert('Erro ao salvar: '+error.message); return }
+  state.gastos.unshift(data)
+  closeModal('m-gasto')
+  document.getElementById('g-desc').value=''
+  document.getElementById('g-val').value=''
+  renderAll()
+}
+
+async function delGasto(id){
+  if(!confirm('Excluir este gasto?')) return
+  await supa.from('gastos').delete().eq('id',id)
+  state.gastos = state.gastos.filter(g=>g.id!==id)
+  renderAll()
+}
+
+async function addMeta(){
+  const nome  = document.getElementById('mt-nome').value.trim()
+  const alvo  = parseFloat(document.getElementById('mt-alvo').value)||0
+  const atual = parseFloat(document.getElementById('mt-atual').value)||0
+  const prazo = document.getElementById('mt-prazo').value
+  if(!nome||!alvo){ alert('Preencha nome e valor alvo.'); return }
+  if(!isPro()&&state.metas.filter(m=>!m.concluida).length>=FREE_METAS){ alert('Limite do plano gratuito atingido.'); closeModal('m-meta'); go('screen-paywall'); return }
+  document.getElementById('mt-save').disabled=true
+  const { data, error } = await supa.from('metas').insert({
+    user_id:state.user.id, nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
+  }).select().single()
+  document.getElementById('mt-save').disabled=false
+  if(error){ alert('Erro: '+error.message); return }
+  state.metas.unshift(data)
+  closeModal('m-meta')
+  document.getElementById('mt-nome').value=''
+  document.getElementById('mt-alvo').value=''
+  document.getElementById('mt-atual').value=''
+  renderAll()
+}
+
+async function delMeta(id){
+  if(!confirm('Excluir esta meta?')) return
+  await supa.from('metas').delete().eq('id',id)
+  state.metas = state.metas.filter(m=>m.id!==id)
+  renderAll()
+}
+
+function openDeposit(id){
+  document.getElementById('dep-id').value=id
+  document.getElementById('dep-val').value=''
+  openModal('m-deposit')
+}
+
+async function doDeposit(){
+  const id  = document.getElementById('dep-id').value
+  const val = parseFloat(document.getElementById('dep-val').value)||0
+  if(!val||val<=0){ alert('Digite um valor válido.'); return }
+  const meta = state.metas.find(m=>m.id===id)
+  if(!meta) return
+  const novoAtual = Math.min(Number(meta.alvo), Number(meta.atual)+val)
+  const concluida = novoAtual >= Number(meta.alvo)
+  await supa.from('metas').update({ atual:novoAtual, concluida }).eq('id',id)
+  meta.atual    = novoAtual
+  meta.concluida= concluida
+  closeModal('m-deposit')
+  renderAll()
+}
+
+async function addRenda(){
+  const nome = document.getElementById('r-nome').value.trim()
+  const val  = parseFloat(document.getElementById('r-val').value)||0
+  const tipo = document.getElementById('r-tipo').value
+  if(!nome||!val){ alert('Preencha nome e valor.'); return }
+  document.getElementById('r-save').disabled=true
+  const { data, error } = await supa.from('rendas').insert({
+    user_id:state.user.id, nome, valor:val, tipo
+  }).select().single()
+  document.getElementById('r-save').disabled=false
+  if(error){ alert('Erro: '+error.message); return }
+  state.renda.unshift(data)
+  closeModal('m-renda')
+  document.getElementById('r-nome').value=''
+  document.getElementById('r-val').value=''
+  renderAll()
+}
+
+async function delRenda(id){
+  if(!confirm('Excluir esta fonte de renda?')) return
+  await supa.from('rendas').delete().eq('id',id)
+  state.renda = state.renda.filter(r=>r.id!==id)
+  renderAll()
+}
+
+// ══════════════════════════════════════════
+// INIT — verificar sessão existente
+// ══════════════════════════════════════════
+;(async function init(){
+  const { data: { session } } = await supa.auth.getSession()
+  if(session?.user){
+    await loadApp(session.user)
+  } else {
+    go('screen-login')
+  }
+
+  // Ouvir mudanças de auth
+  supa.auth.onAuthStateChange(async (event, session) => {
+    if(event==='SIGNED_OUT') go('screen-login')
+    if(event==='PASSWORD_RECOVERY') go('screen-reset')
+  })
+})()
+</script>
+</body>
+</html>
