@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-serif;fon
 .screen{display:none}.screen.active{display:block}
 
 /* ── LOADING ── */
-#screen-loading{display:flex;align-items:center;justify-content:center;min-height:100vh}
+#screen-loading{display:none!important}
 .loader{text-align:center}
 .loader-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.06em;margin-bottom:16px}
 .loader-logo span{color:var(--red)}
@@ -228,10 +228,10 @@ main{padding:24px;overflow-x:hidden}
 <body>
 
 <!-- LOADING -->
-<div class="screen active" id="screen-loading"></div>
+<div class="screen" id="screen-loading"></div>
 
 <!-- LOGIN -->
-<div class="screen" id="screen-login">
+<div class="screen active" id="screen-login">
   <div class="auth-wrap">
     <div class="auth-box">
       <div class="auth-logo">PREDADOR<span>FIN</span></div>
