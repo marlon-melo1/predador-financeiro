@@ -547,6 +547,13 @@ main{padding:24px;overflow-x:hidden}
       <div class="fm"><label>Tipo</label>
         <select id="g-tipo" onchange="toggleParcelaFields()"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
       </div>
+      <div class="fm"><label>Forma de pagamento</label>
+        <select id="g-pagamento">
+          <option>Débito/Pix</option>
+          <option>Crédito</option>
+          <option>Dinheiro</option>
+        </select>
+      </div>
       <!-- Campos extras para Parcelado -->
       <div id="fm-parcela-inicio" class="fm" style="display:none">
         <label>Início das parcelas</label>
@@ -1057,17 +1064,21 @@ function renderGastos(){
 
   const tb = document.getElementById('all-tx')
   tb.innerHTML = !state.gastos.length
-    ? '<tr><td colspan="7" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
+    ? '<tr><td colspan="8" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
     : state.gastos.map(g=>{
         const parcelaLabel = g.tipo==='Parcelado' && g.parcela_inicio && g.parcela_fim
           ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">${g.parcela_inicio.substring(0,7)} → ${g.parcela_fim.substring(0,7)}</div>` : ''
         const badge = g.tipo==='Parcelado' ? 'pill-warn' : g.tipo==='Fixo' ? 'pill-ok' : 'pill-warn'
         const icon  = g.recorrente ? '🔄' : g.tipo==='Parcelado' ? '📅' : ''
+        const pgtoIcon = {'Crédito':'💳','Débito/Pix':'◈','Dinheiro':'💵'}
+        const pgto = g.forma_pagamento||'Débito/Pix'
+        const pgtoColor = pgto==='Crédito'?'var(--gold)':pgto==='Dinheiro'?'var(--green2)':'var(--blue2)'
         return `<tr>
           <td>${g.descricao}${icon?`<span style="margin-left:6px;opacity:.7">${icon}</span>`:''}${parcelaLabel}</td>
           <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
           <td>${g.data||'—'}</td>
           <td class="amt-neg">-R$${n(Number(g.valor))}</td>
+          <td><span style="font-size:11px;color:${pgtoColor}">${pgtoIcon[pgto]||'◈'} ${pgto}</span></td>
           <td><span class="status-pill ${badge}">${g.tipo}</span></td>
           <td><button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editGasto('${g.id}')">✎</button><button class="del-btn" onclick="delGasto('${g.id}',${!!g.recorrente})">✕</button></td>
         </tr>`
@@ -1140,8 +1151,9 @@ function editGasto(id){
   document.getElementById('g-desc').value    = g.descricao
   document.getElementById('g-val').value     = g.valor
   document.getElementById('g-date').value    = g.data||''
-  document.getElementById('g-cat').value     = g.categoria
-  document.getElementById('g-tipo').value    = g.tipo
+  document.getElementById('g-cat').value       = g.categoria
+  document.getElementById('g-tipo').value      = g.tipo
+  document.getElementById('g-pagamento').value = g.forma_pagamento||'Débito/Pix'
   // Preenche campos de parcelamento se necessário
   if(g.tipo==='Parcelado'){
     document.getElementById('g-parcela-inicio').value = g.parcela_inicio ? g.parcela_inicio.substring(0,7) : ''
@@ -1160,8 +1172,9 @@ async function saveGasto(){
   const date   = document.getElementById('g-date').value
   const editId = document.getElementById('g-edit-id').value
   // Campos de parcelamento
-  const parcelaInicio = document.getElementById('g-parcela-inicio').value
-  const parcelaFim    = document.getElementById('g-parcela-fim').value
+  const parcelaInicio  = document.getElementById('g-parcela-inicio').value
+  const parcelaFim     = document.getElementById('g-parcela-fim').value
+  const formaPagamento = document.getElementById('g-pagamento').value
   if(!desc||!val||val<=0){ alert('Preencha descrição e valor.'); return }
   if(tipo==='Parcelado' && (!parcelaInicio||!parcelaFim)){ alert('Informe o início e fim das parcelas.'); return }
   if(tipo==='Parcelado' && parcelaFim < parcelaInicio){ alert('A data de fim deve ser após o início.'); return }
@@ -1172,7 +1185,7 @@ async function saveGasto(){
   const dataGasto      = tipo==='Parcelado' ? parcela_inicio : (date||new Date().toISOString().split('T')[0])
   if(editId){
     const { data, error } = await supa.from('gastos').update({
-      descricao:desc, valor:val, categoria:cat, tipo, data:dataGasto, recorrente, parcela_inicio, parcela_fim
+      descricao:desc, valor:val, categoria:cat, tipo, data:dataGasto, recorrente, parcela_inicio, parcela_fim, forma_pagamento:formaPagamento
     }).eq('id',editId).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
@@ -1185,7 +1198,7 @@ async function saveGasto(){
     }
     const { data, error } = await supa.from('gastos').insert({
       user_id:state.user.id, descricao:desc, valor:val, categoria:cat, tipo,
-      data:dataGasto, recorrente, parcela_inicio, parcela_fim
+      data:dataGasto, recorrente, parcela_inicio, parcela_fim, forma_pagamento:formaPagamento
     }).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
@@ -1199,6 +1212,7 @@ async function saveGasto(){
   document.getElementById('g-parcela-inicio').value=''
   document.getElementById('g-parcela-fim').value=''
   document.getElementById('g-tipo').value='Variável'
+  document.getElementById('g-pagamento').value='Débito/Pix'
   toggleParcelaFields()
   document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
   closeModal('m-gasto')
