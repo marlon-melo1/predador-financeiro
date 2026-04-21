@@ -536,7 +536,7 @@ main{padding:24px;overflow-x:hidden}
     <div class="form-grid">
       <div class="fm" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Mercado, Aluguel..."></div>
       <div class="fm"><label>Valor (R$)</label><input type="number" id="g-val" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="fm"><label>Data</label><input type="date" id="g-date"></div>
+      <div class="fm" id="fm-g-date"><label>Data</label><input type="date" id="g-date"></div>
       <div class="fm"><label>Categoria</label>
         <input type="text" id="g-cat" list="g-cat-list" placeholder="Selecione ou digite..." autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:11px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;width:100%">
         <datalist id="g-cat-list">
@@ -545,7 +545,16 @@ main{padding:24px;overflow-x:hidden}
         </datalist>
       </div>
       <div class="fm"><label>Tipo</label>
-        <select id="g-tipo"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
+        <select id="g-tipo" onchange="toggleParcelaFields()"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
+      </div>
+      <!-- Campos extras para Parcelado -->
+      <div id="fm-parcela-inicio" class="fm" style="display:none">
+        <label>Início das parcelas</label>
+        <input type="month" id="g-parcela-inicio">
+      </div>
+      <div id="fm-parcela-fim" class="fm" style="display:none">
+        <label>Fim das parcelas</label>
+        <input type="month" id="g-parcela-fim">
       </div>
     </div>
     <div class="form-actions">
@@ -629,6 +638,21 @@ function refreshCatDatalist(){
   if(!dl) return
   Array.from(dl.querySelectorAll('option[data-custom]')).forEach(o=>o.remove())
   loadCustomCats().forEach(cat=>{ const o=document.createElement('option'); o.value=cat; o.setAttribute('data-custom','1'); dl.appendChild(o) })
+}
+
+function toggleParcelaFields(){
+  const tipo = document.getElementById('g-tipo').value
+  const show = tipo === 'Parcelado'
+  document.getElementById('fm-parcela-inicio').style.display = show ? '' : 'none'
+  document.getElementById('fm-parcela-fim').style.display    = show ? '' : 'none'
+  document.getElementById('fm-g-date').style.display         = show ? 'none' : ''
+}
+
+function ymToFirstDay(ym){ return ym ? ym+'-01' : null }
+function ymToLastDay(ym){
+  if(!ym) return null
+  const [y,m] = ym.split('-').map(Number)
+  return `${ym}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`
 }
 
 const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -913,7 +937,7 @@ async function fetchAll(){
   // Query única: gastos do mês OU gastos fixos recorrentes de meses anteriores
   const [g, m, r] = await Promise.all([
     supa.from('gastos').select('*').eq('user_id', state.user.id)
-      .or(`and(data.gte.${start},data.lte.${end}),and(recorrente.is.true,data.lt.${start})`)
+      .or(`and(data.gte.${start},data.lte.${end}),and(recorrente.is.true,data.lt.${start}),and(tipo.eq.Parcelado,parcela_inicio.lte.${end},parcela_fim.gte.${start})`)
       .order('data',{ascending:false}),
     supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
     supa.from('rendas').select('*').eq('user_id', state.user.id)
@@ -1034,14 +1058,20 @@ function renderGastos(){
   const tb = document.getElementById('all-tx')
   tb.innerHTML = !state.gastos.length
     ? '<tr><td colspan="7" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
-    : state.gastos.map(g=>`<tr>
-        <td>${g.descricao}${g.recorrente?'<span title="Recorrente" style="margin-left:6px;opacity:.7">🔄</span>':''}</td>
-        <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
-        <td>${g.data||'—'}</td>
-        <td class="amt-neg">-R$${n(Number(g.valor))}</td>
-        <td><span class="status-pill ${g.tipo==='Fixo'?'pill-ok':'pill-warn'}">${g.tipo}</span></td>
-        <td><button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editGasto('${g.id}')">✎</button><button class="del-btn" onclick="delGasto('${g.id}',${!!g.recorrente})">✕</button></td>
-      </tr>`).join('')
+    : state.gastos.map(g=>{
+        const parcelaLabel = g.tipo==='Parcelado' && g.parcela_inicio && g.parcela_fim
+          ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">${g.parcela_inicio.substring(0,7)} → ${g.parcela_fim.substring(0,7)}</div>` : ''
+        const badge = g.tipo==='Parcelado' ? 'pill-warn' : g.tipo==='Fixo' ? 'pill-ok' : 'pill-warn'
+        const icon  = g.recorrente ? '🔄' : g.tipo==='Parcelado' ? '📅' : ''
+        return `<tr>
+          <td>${g.descricao}${icon?`<span style="margin-left:6px;opacity:.7">${icon}</span>`:''}${parcelaLabel}</td>
+          <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
+          <td>${g.data||'—'}</td>
+          <td class="amt-neg">-R$${n(Number(g.valor))}</td>
+          <td><span class="status-pill ${badge}">${g.tipo}</span></td>
+          <td><button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editGasto('${g.id}')">✎</button><button class="del-btn" onclick="delGasto('${g.id}',${!!g.recorrente})">✕</button></td>
+        </tr>`
+      }).join('')
 }
 
 function renderMetas(){
@@ -1112,6 +1142,12 @@ function editGasto(id){
   document.getElementById('g-date').value    = g.data||''
   document.getElementById('g-cat').value     = g.categoria
   document.getElementById('g-tipo').value    = g.tipo
+  // Preenche campos de parcelamento se necessário
+  if(g.tipo==='Parcelado'){
+    document.getElementById('g-parcela-inicio').value = g.parcela_inicio ? g.parcela_inicio.substring(0,7) : ''
+    document.getElementById('g-parcela-fim').value    = g.parcela_fim    ? g.parcela_fim.substring(0,7)    : ''
+  }
+  toggleParcelaFields()
   document.getElementById('m-gasto-title').innerHTML = 'Editar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
   openModal('m-gasto')
 }
@@ -1119,17 +1155,24 @@ function editGasto(id){
 async function saveGasto(){
   const desc   = document.getElementById('g-desc').value.trim()
   const val    = parseFloat(document.getElementById('g-val').value)
-  const cat    = document.getElementById('g-cat').value
+  const cat    = document.getElementById('g-cat').value.trim()
   const tipo   = document.getElementById('g-tipo').value
   const date   = document.getElementById('g-date').value
   const editId = document.getElementById('g-edit-id').value
+  // Campos de parcelamento
+  const parcelaInicio = document.getElementById('g-parcela-inicio').value
+  const parcelaFim    = document.getElementById('g-parcela-fim').value
   if(!desc||!val||val<=0){ alert('Preencha descrição e valor.'); return }
+  if(tipo==='Parcelado' && (!parcelaInicio||!parcelaFim)){ alert('Informe o início e fim das parcelas.'); return }
+  if(tipo==='Parcelado' && parcelaFim < parcelaInicio){ alert('A data de fim deve ser após o início.'); return }
   document.getElementById('g-save').disabled=true
+  const recorrente    = tipo==='Fixo'
+  const parcela_inicio = tipo==='Parcelado' ? ymToFirstDay(parcelaInicio) : null
+  const parcela_fim    = tipo==='Parcelado' ? ymToLastDay(parcelaFim)     : null
+  const dataGasto      = tipo==='Parcelado' ? parcela_inicio : (date||new Date().toISOString().split('T')[0])
   if(editId){
-    // Editar existente
-    const recorrente = tipo==='Fixo'
     const { data, error } = await supa.from('gastos').update({
-      descricao:desc, valor:val, categoria:cat, tipo, data:date||new Date().toISOString().split('T')[0], recorrente
+      descricao:desc, valor:val, categoria:cat, tipo, data:dataGasto, recorrente, parcela_inicio, parcela_fim
     }).eq('id',editId).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
@@ -1137,14 +1180,12 @@ async function saveGasto(){
     const idx = state.gastos.findIndex(x=>x.id===editId)
     if(idx>=0) state.gastos[idx]=data
   } else {
-    // Novo gasto
-    if(!isPro()&&state.gastos.filter(g=>!g.recorrente||g.data>=ymRange(state.currentMonth)[0]).length>=FREE_GASTOS){
+    if(!isPro()&&state.gastos.filter(g=>!g.recorrente&&g.tipo!=='Parcelado').length>=FREE_GASTOS){
       alert('Limite do plano gratuito atingido.'); closeModal('m-gasto'); go('screen-paywall'); return
     }
-    const recorrente = tipo==='Fixo'
     const { data, error } = await supa.from('gastos').insert({
       user_id:state.user.id, descricao:desc, valor:val, categoria:cat, tipo,
-      data:date||new Date().toISOString().split('T')[0], recorrente
+      data:dataGasto, recorrente, parcela_inicio, parcela_fim
     }).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
@@ -1155,15 +1196,21 @@ async function saveGasto(){
   document.getElementById('g-edit-id').value=''
   document.getElementById('g-desc').value=''
   document.getElementById('g-val').value=''
+  document.getElementById('g-parcela-inicio').value=''
+  document.getElementById('g-parcela-fim').value=''
+  document.getElementById('g-tipo').value='Variável'
+  toggleParcelaFields()
   document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
   closeModal('m-gasto')
   renderAll()
 }
 
 async function delGasto(id, recorrente){
-  if(recorrente){
-    const ok = confirm('Este gasto é fixo e aparece em todos os meses.\n\nExcluir o gasto fixo de todos os meses?')
-    if(!ok) return
+  const g = state.gastos.find(x=>x.id===id)
+  if(g && g.tipo==='Parcelado'){
+    if(!confirm('Excluir este parcelamento de todos os meses?')) return
+  } else if(recorrente){
+    if(!confirm('Este gasto é fixo e aparece em todos os meses.\n\nExcluir o gasto fixo de todos os meses?')) return
   } else {
     if(!confirm('Excluir este gasto?')) return
   }
