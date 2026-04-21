@@ -364,7 +364,11 @@ main{padding:24px;overflow-x:hidden}
     <div class="sb-section">
       <div class="sb-label">Orçamento mensal</div>
       <div class="sb-budget">
-        <div class="sb-budget-label" id="sb-month">—</div>
+        <div class="sb-budget-label" style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+          <button onclick="changeMonth(-1)" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Mês anterior">‹</button>
+          <span id="sb-month" style="flex:1;text-align:center">—</span>
+          <button onclick="changeMonth(1)" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Próximo mês">›</button>
+        </div>
         <div class="sb-vals"><span id="sb-spent" style="color:var(--red2)">R$0</span><span id="sb-total" style="color:var(--gray)">/ R$5.000</span></div>
         <div class="sb-bar"><div class="sb-fill" id="sb-fill" style="background:var(--gold)"></div></div>
         <div class="sb-nums"><span id="sb-pct">0% usado</span><span id="sb-free" style="color:var(--green2)">R$5.000 livre</span></div>
@@ -557,7 +561,25 @@ const catColors = {Moradia:'#C0392B',Alimentação:'#D4AC0D',Transporte:'#1A5276
 const catBudgets= {Moradia:2000,Alimentação:1000,Transporte:600,Saúde:400,Lazer:400,Educação:300,Outros:300}
 const rendaIcons= {'Renda fixa':'◈','Renda variável':'↑','Investimento':'★'}
 
-let state = { user:null, profile:null, gastos:[], metas:[], renda:[] }
+const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+function ymNow(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` }
+function ymLabel(ym){ const [y,m]=ym.split('-'); return `${MONTHS_PT[+m-1]} ${y}` }
+function ymShift(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+delta,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
+function ymRange(ym){ const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0).getDate(); return [`${ym}-01`,`${ym}-${String(last).padStart(2,'0')}`] }
+
+let state = { user:null, profile:null, gastos:[], metas:[], renda:[], currentMonth: ymNow() }
+
+async function changeMonth(delta){
+  state.currentMonth = ymShift(state.currentMonth, delta)
+  updateMonthUI()
+  await fetchAll()
+  renderAll()
+}
+function updateMonthUI(){
+  const lbl = ymLabel(state.currentMonth)
+  document.getElementById('sb-month').textContent   = lbl
+  document.getElementById('dash-sub').textContent   = `${lbl} — em tempo real`
+}
 
 // ══════════════════════════════════════════
 // NAVIGATION
@@ -579,7 +601,19 @@ function showPage(id, btn){
   })
 }
 
-function openModal(id){ document.getElementById(id).classList.add('open') }
+function openModal(id){
+  // Ao abrir modal de gasto, pré-preenche a data com o mês selecionado
+  if(id==='m-gasto'){
+    const today = new Date()
+    const [y,m] = state.currentMonth.split('-').map(Number)
+    const isCurrent = (today.getFullYear()===y && today.getMonth()+1===m)
+    const dateVal = isCurrent
+      ? today.toISOString().split('T')[0]
+      : `${state.currentMonth}-01`
+    document.getElementById('g-date').value = dateVal
+  }
+  document.getElementById(id).classList.add('open')
+}
 function closeModal(id){ document.getElementById(id).classList.remove('open') }
 document.querySelectorAll('.modal-overlay').forEach(m=>
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') })
@@ -749,10 +783,8 @@ async function loadApp(user){
   else        { badge.textContent='FREE'; badge.className='badge-plan badge-free' }
 
   const now = new Date()
-  const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-  const ms = `${months[now.getMonth()]} ${now.getFullYear()}`
-  document.getElementById('sb-month').textContent = ms
-  document.getElementById('dash-sub').textContent = `${ms} — em tempo real`
+  state.currentMonth = ymNow()
+  updateMonthUI()
   document.getElementById('g-date').value = now.toISOString().split('T')[0]
 
   go('screen-app')
@@ -761,10 +793,13 @@ async function loadApp(user){
 }
 
 async function fetchAll(){
+  const [start, end] = ymRange(state.currentMonth)
   const [g, m, r] = await Promise.all([
-    supa.from('gastos').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
+    supa.from('gastos').select('*').eq('user_id', state.user.id)
+      .gte('data', start).lte('data', end).order('data',{ascending:false}),
     supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
-    supa.from('rendas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
+    supa.from('rendas').select('*').eq('user_id', state.user.id)
+      .eq('mes', state.currentMonth).order('created_at',{ascending:false}),
   ])
   state.gastos = g.data || []
   state.metas  = m.data || []
@@ -785,6 +820,7 @@ function renderAll(){
 }
 
 function renderSidebar(){
+  updateMonthUI()
   const total  = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
   const budget = state.renda.reduce((s,r)=>s+Number(r.valor),0)
   const pct    = budget > 0 ? Math.min(100, Math.round((total/budget)*100)) : 0
@@ -1052,7 +1088,7 @@ async function saveRenda(){
     if(idx>=0) state.renda[idx] = data
   } else {
     // Nova renda
-    const { data, error } = await supa.from('rendas').insert({ user_id:state.user.id, nome, valor:val, tipo }).select().single()
+    const { data, error } = await supa.from('rendas').insert({ user_id:state.user.id, nome, valor:val, tipo, mes:state.currentMonth }).select().single()
     document.getElementById('r-save').disabled=false
     if(error){ alert('Erro: '+error.message); return }
     state.renda.unshift(data)
