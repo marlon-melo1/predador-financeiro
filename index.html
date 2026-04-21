@@ -266,6 +266,24 @@ main{padding:24px;overflow-x:hidden}
   </div>
 </div>
 
+<!-- VERIFICAR EMAIL -->
+<div class="screen" id="screen-verify-email">
+  <div class="auth-wrap">
+    <div class="auth-box" style="text-align:center">
+      <div class="auth-logo">PREDADOR<span>FIN</span></div>
+      <div class="auth-tagline">Quase lá!</div>
+      <div style="font-size:48px;margin:24px 0">📧</div>
+      <div class="auth-title" style="border:none;text-align:center">Verifique seu e-mail</div>
+      <p style="font-size:14px;color:#aaa;margin-bottom:8px">Enviamos um link de confirmação para:</p>
+      <p style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:24px" id="verify-email-addr"></p>
+      <p style="font-size:13px;color:var(--gray);margin-bottom:28px;line-height:1.6">Clique no link recebido para ativar sua conta.<br>Depois volte aqui para escolher seu plano.</p>
+      <div id="verify-resend-ok" class="msg-ok"></div>
+      <button class="btn-full" onclick="reenviarVerificacao()">Reenviar e-mail</button>
+      <button class="btn-full outline" onclick="go('screen-login')" style="margin-top:10px">Já confirmei — Entrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- RESET SENHA -->
 <div class="screen" id="screen-reset">
   <div class="auth-wrap">
@@ -682,12 +700,18 @@ async function doRegister(){
   document.getElementById('reg-btn').textContent='Criar conta grátis'
   if(error){ err.textContent=error.message; err.classList.add('show'); return }
   if(data.user){
-    state.user = data.user
-    go('screen-paywall')
-  } else {
-    ok.textContent='Verifique seu e-mail para confirmar o cadastro.'
-    ok.classList.add('show')
+    document.getElementById('verify-email-addr').textContent = email
+    go('screen-verify-email')
   }
+}
+
+async function reenviarVerificacao(){
+  const email = document.getElementById('verify-email-addr').textContent
+  const ok    = document.getElementById('verify-resend-ok')
+  if(!email) return
+  await supa.auth.resend({ type:'signup', email })
+  ok.textContent='E-mail reenviado! Verifique sua caixa de entrada.'
+  ok.classList.add('show')
 }
 
 async function doReset(){
@@ -1157,7 +1181,15 @@ async function delRenda(id){
 ;(async function init(){
   const { data: { session } } = await supa.auth.getSession()
   if(session?.user){
-    await loadApp(session.user)
+    // Verifica se o usuário já tem perfil (já escolheu plano)
+    const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
+    if(profile){
+      await loadApp(session.user)
+    } else {
+      // Email confirmado mas ainda não escolheu plano → paywall
+      state.user = session.user
+      go('screen-paywall')
+    }
   } else {
     go('screen-login')
   }
@@ -1166,6 +1198,16 @@ async function delRenda(id){
   supa.auth.onAuthStateChange(async (event, session) => {
     if(event==='SIGNED_OUT') go('screen-login')
     if(event==='PASSWORD_RECOVERY') go('screen-new-password')
+    // Usuário acabou de confirmar o email pelo link
+    if(event==='SIGNED_IN' && session?.user && !state.user){
+      const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
+      if(profile){
+        await loadApp(session.user)
+      } else {
+        state.user = session.user
+        go('screen-paywall')
+      }
+    }
   })
 })()
 </script>
