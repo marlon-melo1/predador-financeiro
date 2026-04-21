@@ -95,7 +95,7 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;d
 .btn-sm{padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--gray);cursor:pointer;transition:all .15s}
 .btn-sm:hover{border-color:var(--red);color:var(--white)}
 
-.app{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 52px)}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 52px)}
 @media(max-width:700px){.app{grid-template-columns:1fr}.sidebar{display:none}}
 
 .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0}
@@ -111,7 +111,7 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;d
 .sb-val-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .sb-val-item{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 .sb-val-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);white-space:nowrap}
-.sb-val-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;word-break:break-all;text-align:right}
+.sb-val-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
 .sb-val-num.red{color:var(--red2)}
 .sb-val-num.green{color:var(--green2)}
 .sb-bar{height:5px;background:var(--bg4);border-radius:2px;margin:0 0 8px}
