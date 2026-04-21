@@ -273,10 +273,27 @@ main{padding:24px;overflow-x:hidden}
       <div class="auth-logo">PREDADOR<span>FIN</span></div>
       <div class="auth-tagline">Recuperar acesso</div>
       <div class="auth-title">Redefinir senha</div>
+      <div class="msg-error" id="reset-err"></div>
       <div class="msg-ok" id="reset-ok"></div>
-      <div class="field"><label>E-mail cadastrado</label><input type="email" id="reset-email" placeholder="seu@email.com"></div>
-      <button class="btn-full" onclick="doReset()">Enviar link de recuperação</button>
+      <div class="field"><label>E-mail cadastrado</label><input type="email" id="reset-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doReset()"></div>
+      <button class="btn-full" id="reset-btn" onclick="doReset()">Enviar link de recuperação</button>
       <button class="btn-full outline" onclick="go('screen-login')">Voltar ao login</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOVA SENHA -->
+<div class="screen" id="screen-new-password">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">PREDADOR<span>FIN</span></div>
+      <div class="auth-tagline">Criar nova senha</div>
+      <div class="auth-title">Nova senha</div>
+      <div class="msg-error" id="newpass-err"></div>
+      <div class="msg-ok" id="newpass-ok"></div>
+      <div class="field"><label>Nova senha</label><input type="password" id="newpass1" placeholder="Mínimo 6 caracteres"></div>
+      <div class="field"><label>Confirmar nova senha</label><input type="password" id="newpass2" placeholder="Repita a senha"></div>
+      <button class="btn-full" id="newpass-btn" onclick="doUpdatePassword()">Salvar nova senha</button>
     </div>
   </div>
 </div>
@@ -675,12 +692,38 @@ async function doRegister(){
 
 async function doReset(){
   const email = document.getElementById('reset-email').value.trim()
+  const err   = document.getElementById('reset-err')
   const ok    = document.getElementById('reset-ok')
-  await supa.auth.resetPasswordForEmail(email, {
+  const btn   = document.getElementById('reset-btn')
+  err.classList.remove('show'); ok.classList.remove('show')
+  if(!email){ err.textContent='Informe seu e-mail.'; err.classList.add('show'); return }
+  btn.disabled=true; btn.textContent='Enviando...'
+  const { error } = await supa.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin
   })
-  ok.textContent='Se este e-mail estiver cadastrado, você receberá as instruções.'
+  btn.disabled=false; btn.textContent='Enviar link de recuperação'
+  if(error){ err.textContent=error.message; err.classList.add('show'); return }
+  ok.textContent='Link enviado! Verifique seu e-mail e clique no link para redefinir a senha.'
   ok.classList.add('show')
+}
+
+async function doUpdatePassword(){
+  const pass1 = document.getElementById('newpass1').value
+  const pass2 = document.getElementById('newpass2').value
+  const err   = document.getElementById('newpass-err')
+  const ok    = document.getElementById('newpass-ok')
+  const btn   = document.getElementById('newpass-btn')
+  err.classList.remove('show'); ok.classList.remove('show')
+  if(!pass1||!pass2){ err.textContent='Preencha os dois campos.'; err.classList.add('show'); return }
+  if(pass1.length<6){ err.textContent='Senha deve ter no mínimo 6 caracteres.'; err.classList.add('show'); return }
+  if(pass1!==pass2){ err.textContent='As senhas não coincidem.'; err.classList.add('show'); return }
+  btn.disabled=true; btn.textContent='Salvando...'
+  const { error } = await supa.auth.updateUser({ password: pass1 })
+  btn.disabled=false; btn.textContent='Salvar nova senha'
+  if(error){ err.textContent=error.message; err.classList.add('show'); return }
+  ok.textContent='Senha atualizada! Redirecionando...'
+  ok.classList.add('show')
+  setTimeout(()=>{ go('screen-login') }, 1500)
 }
 
 async function doLogout(){
@@ -1122,7 +1165,7 @@ async function delRenda(id){
   // Ouvir mudanças de auth
   supa.auth.onAuthStateChange(async (event, session) => {
     if(event==='SIGNED_OUT') go('screen-login')
-    if(event==='PASSWORD_RECOVERY') go('screen-reset')
+    if(event==='PASSWORD_RECOVERY') go('screen-new-password')
   })
 })()
 </script>
