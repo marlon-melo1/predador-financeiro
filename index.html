@@ -524,7 +524,11 @@ main{padding:24px;overflow-x:hidden}
       <div class="fm"><label>Valor (R$)</label><input type="number" id="g-val" placeholder="0,00" min="0" step="0.01"></div>
       <div class="fm"><label>Data</label><input type="date" id="g-date"></div>
       <div class="fm"><label>Categoria</label>
-        <select id="g-cat"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Lazer</option><option>Educação</option><option>Outros</option></select>
+        <input type="text" id="g-cat" list="g-cat-list" placeholder="Selecione ou digite..." autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:11px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;width:100%">
+        <datalist id="g-cat-list">
+          <option>Moradia</option><option>Alimentação</option><option>Transporte</option>
+          <option>Saúde</option><option>Lazer</option><option>Educação</option>
+        </datalist>
       </div>
       <div class="fm"><label>Tipo</label>
         <select id="g-tipo"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
@@ -594,9 +598,24 @@ const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY)
 const BUDGET = 5000
 const FREE_GASTOS = 10
 const FREE_METAS  = 2
-const catColors = {Moradia:'#C0392B',Alimentação:'#D4AC0D',Transporte:'#1A5276',Saúde:'#8E44AD',Lazer:'#1E8449',Educação:'#2980B9',Outros:'#555'}
-const catBudgets= {Moradia:2000,Alimentação:1000,Transporte:600,Saúde:400,Lazer:400,Educação:300,Outros:300}
+const catColors = {Moradia:'#C0392B',Alimentação:'#D4AC0D',Transporte:'#1A5276',Saúde:'#8E44AD',Lazer:'#1E8449',Educação:'#2980B9'}
+const CAT_PALETTE = ['#C0392B','#D4AC0D','#1A5276','#8E44AD','#1E8449','#2980B9','#E67E22','#16A085','#884EA0','#A93226']
+function catColor(cat){ return catColors[cat] || (()=>{ const k=Object.keys(catColors).length; return CAT_PALETTE[k%CAT_PALETTE.length] })() }
 const rendaIcons= {'Renda fixa':'◈','Renda variável':'↑','Investimento':'★'}
+
+const DEFAULT_CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Educação']
+function loadCustomCats(){ try{ return JSON.parse(localStorage.getItem('customCats')||'[]') }catch(e){ return [] } }
+function saveCustomCat(cat){
+  if(!cat||DEFAULT_CATS.includes(cat)) return
+  const list = loadCustomCats()
+  if(!list.includes(cat)){ list.push(cat); localStorage.setItem('customCats',JSON.stringify(list)); refreshCatDatalist() }
+}
+function refreshCatDatalist(){
+  const dl = document.getElementById('g-cat-list')
+  if(!dl) return
+  Array.from(dl.querySelectorAll('option[data-custom]')).forEach(o=>o.remove())
+  loadCustomCats().forEach(cat=>{ const o=document.createElement('option'); o.value=cat; o.setAttribute('data-custom','1'); dl.appendChild(o) })
+}
 
 const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 function ymNow(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` }
@@ -870,6 +889,7 @@ async function loadApp(user){
   document.getElementById('g-date').value = now.toISOString().split('T')[0]
 
   go('screen-app')
+  refreshCatDatalist()
   renderAll()
   showPage('dashboard', null)
 }
@@ -893,7 +913,7 @@ async function fetchAll(){
 // ══════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════
-function n(v){ return Math.round(v).toLocaleString('pt-BR') }
+function n(v){ const x=Number(v)||0; return x%1===0 ? x.toLocaleString('pt-BR') : x.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }
 
 function renderAll(){
   renderSidebar()
@@ -934,7 +954,7 @@ function renderDashboard(){
     ? '<tr><td colspan="3" style="color:var(--gray);text-align:center;padding:20px">Nenhuma transação ainda.</td></tr>'
     : recent.map(g=>`<tr>
         <td>${g.descricao}</td>
-        <td><span class="cat-dot" style="background:${catColors[g.categoria]||'#555'}"></span>${g.categoria}</td>
+        <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
         <td class="amt-neg">-R$${n(Number(g.valor))}</td>
       </tr>`).join('')
 
@@ -947,7 +967,7 @@ function renderDashboard(){
   let off=0
   const circles = entries.map(([cat,val])=>{
     const d=val/tot*239.27
-    const c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${catColors[cat]||'#555'}" stroke-width="16" stroke-dasharray="${d.toFixed(1)} ${(239.27-d).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 50 50)"/>`
+    const c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${catColor(cat)}" stroke-width="16" stroke-dasharray="${d.toFixed(1)} ${(239.27-d).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 50 50)"/>`
     off+=d; return c
   })
   donut.innerHTML=`
@@ -959,7 +979,7 @@ function renderDashboard(){
     </svg>
     <div class="donut-legend">${entries.slice(0,5).map(([cat,val])=>`
       <div class="legend-item">
-        <div class="legend-dot" style="background:${catColors[cat]||'#555'}"></div>${cat}
+        <div class="legend-dot" style="background:${catColor(cat)}"></div>${cat}
         <span class="legend-pct">${Math.round(val/tot*100)}%</span>
       </div>`).join('')}
     </div>`
@@ -978,14 +998,14 @@ function renderGastos(){
   if(top){ document.getElementById('g-top').textContent=top[0]; document.getElementById('g-top-val').textContent='R$'+n(top[1]) }
 
   const cp = document.getElementById('cat-prog')
+  const catTotal = Object.values(cats).reduce((s,v)=>s+v,0)
   cp.innerHTML = !Object.keys(cats).length
     ? '<div class="empty-state"><p>Nenhum gasto registrado.</p></div>'
     : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>{
-        const b=catBudgets[cat]||500
-        const p=Math.min(100,Math.round(val/b*100))
-        const c=p>90?'var(--red)':p>70?'var(--gold)':'var(--green)'
+        const p = catTotal>0 ? Math.min(100,Math.round(val/catTotal*100)) : 0
+        const c = catColor(cat)
         return `<div class="prog-row">
-          <div class="prog-top"><span class="prog-name">${cat}</span><span class="prog-val">R$${n(val)} / R$${n(b)}</span></div>
+          <div class="prog-top"><span class="prog-name">${cat}</span><span class="prog-val">R$${n(val)} <span style="color:var(--gray);font-size:11px">(${p}%)</span></span></div>
           <div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${c}"></div></div>
         </div>`
       }).join('')
@@ -1002,7 +1022,7 @@ function renderGastos(){
     ? '<tr><td colspan="7" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
     : state.gastos.map(g=>`<tr>
         <td>${g.descricao}${g.recorrente?'<span title="Recorrente" style="margin-left:6px;opacity:.7">🔄</span>':''}</td>
-        <td><span class="cat-dot" style="background:${catColors[g.categoria]||'#555'}"></span>${g.categoria}</td>
+        <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
         <td>${g.data||'—'}</td>
         <td class="amt-neg">-R$${n(Number(g.valor))}</td>
         <td><span class="status-pill ${g.tipo==='Fixo'?'pill-ok':'pill-warn'}">${g.tipo}</span></td>
@@ -1099,6 +1119,7 @@ async function saveGasto(){
     }).eq('id',editId).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
+    saveCustomCat(cat)
     const idx = state.gastos.findIndex(x=>x.id===editId)
     if(idx>=0) state.gastos[idx]=data
   } else {
@@ -1113,6 +1134,7 @@ async function saveGasto(){
     }).select().single()
     document.getElementById('g-save').disabled=false
     if(error){ alert('Erro ao salvar: '+error.message); return }
+    saveCustomCat(cat)
     state.gastos.unshift(data)
   }
   // Reset modal
