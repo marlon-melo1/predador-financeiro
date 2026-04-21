@@ -725,12 +725,17 @@ async function loadApp(user){
     const { data: p2 } = await supa.from('profiles').select('*').eq('id', user.id).single()
     profile = p2
   }
+  // Se o plano trial venceu ou é inválido → downgrade automático para free (nunca bloqueia o login)
+  if(profile){
+    const trialExpired = profile.plan==='trial' && new Date(profile.trial_end) <= new Date()
+    const planInvalid  = !profile.plan || (profile.plan!=='pro' && profile.plan!=='free' && profile.plan!=='trial')
+    if(trialExpired || planInvalid){
+      await supa.from('profiles').update({ plan:'free', trial_end:null }).eq('id', user.id)
+      profile.plan = 'free'
+      profile.trial_end = null
+    }
+  }
   state.profile = profile
-
-  // Mostrar paywall se não tem plano definido
-  const hasPlan = profile && (profile.plan==='pro' || profile.plan==='free' ||
-    (profile.plan==='trial' && new Date(profile.trial_end) > new Date()))
-  if(!hasPlan){ go('screen-paywall'); return }
 
   // Buscar dados
   await fetchAll()
