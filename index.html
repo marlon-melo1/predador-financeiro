@@ -755,9 +755,15 @@ async function doUpdatePassword(){
   const { error } = await supa.auth.updateUser({ password: pass1 })
   btn.disabled=false; btn.textContent='Salvar nova senha'
   if(error){ err.textContent=error.message; err.classList.add('show'); return }
-  ok.textContent='Senha atualizada! Redirecionando...'
+  ok.textContent='Senha atualizada! Fazendo logout para confirmar...'
   ok.classList.add('show')
-  setTimeout(()=>{ go('screen-login') }, 1500)
+  setTimeout(async ()=>{
+    state.user = null
+    await supa.auth.signOut()
+    document.getElementById('newpass1').value=''
+    document.getElementById('newpass2').value=''
+    go('screen-login')
+  }, 1500)
 }
 
 async function doLogout(){
@@ -1257,14 +1263,22 @@ async function delRenda(id){
 // INIT — verificar sessão existente
 // ══════════════════════════════════════════
 ;(async function init(){
+  // Lê o tipo do link ANTES do Supabase processar o hash (recovery, signup, etc.)
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/,''))
+  const linkType   = hashParams.get('type') // 'recovery' | 'signup' | null
+
   const { data: { session } } = await supa.auth.getSession()
-  if(session?.user){
-    // Verifica se o usuário já tem perfil (já escolheu plano)
+
+  if(linkType === 'recovery' && session?.user){
+    // Link de recuperação de senha → vai para tela de nova senha
+    state.user = session.user
+    go('screen-new-password')
+  } else if(session?.user){
+    // Sessão normal — verifica se já tem perfil (escolheu plano)
     const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
     if(profile){
       await loadApp(session.user)
     } else {
-      // Email confirmado mas ainda não escolheu plano → paywall
       state.user = session.user
       go('screen-paywall')
     }
@@ -1275,8 +1289,12 @@ async function delRenda(id){
   // Ouvir mudanças de auth
   supa.auth.onAuthStateChange(async (event, session) => {
     if(event==='SIGNED_OUT') go('screen-login')
-    if(event==='PASSWORD_RECOVERY') go('screen-new-password')
-    // Usuário acabou de confirmar o email pelo link
+    if(event==='PASSWORD_RECOVERY'){
+      // Garante que state.user está definido para bloquear o SIGNED_IN de entrar no app
+      state.user = session?.user || state.user
+      go('screen-new-password')
+    }
+    // Confirmação de email ou login — só entra se não estiver numa tela de senha
     if(event==='SIGNED_IN' && session?.user && !state.user){
       const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
       if(profile){
