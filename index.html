@@ -517,7 +517,8 @@ main{padding:24px;overflow-x:hidden}
 <!-- MODALS -->
 <div class="modal-overlay" id="m-gasto">
   <div class="modal">
-    <div class="modal-title">Registrar gasto <button class="modal-close" onclick="closeModal('m-gasto')">✕</button></div>
+    <div class="modal-title" id="m-gasto-title">Registrar gasto <button class="modal-close" onclick="closeModal('m-gasto')">✕</button></div>
+    <input type="hidden" id="g-edit-id" value="">
     <div class="form-grid">
       <div class="fm" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Mercado, Aluguel..."></div>
       <div class="fm"><label>Valor (R$)</label><input type="number" id="g-val" placeholder="0,00" min="0" step="0.01"></div>
@@ -530,7 +531,7 @@ main{padding:24px;overflow-x:hidden}
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn-primary" id="g-save" onclick="addGasto()">Salvar</button>
+      <button class="btn-primary" id="g-save" onclick="saveGasto()">Salvar</button>
       <button class="btn-outline" onclick="closeModal('m-gasto')">Cancelar</button>
     </div>
   </div>
@@ -538,7 +539,8 @@ main{padding:24px;overflow-x:hidden}
 
 <div class="modal-overlay" id="m-meta">
   <div class="modal">
-    <div class="modal-title">Nova meta <button class="modal-close" onclick="closeModal('m-meta')">✕</button></div>
+    <div class="modal-title" id="m-meta-title">Nova meta <button class="modal-close" onclick="closeModal('m-meta')">✕</button></div>
+    <input type="hidden" id="mt-edit-id" value="">
     <div class="form-grid">
       <div class="fm" style="grid-column:1/-1"><label>Nome da meta</label><input type="text" id="mt-nome" placeholder="Ex: Reserva de emergência"></div>
       <div class="fm"><label>Valor alvo (R$)</label><input type="number" id="mt-alvo" placeholder="10.000" min="0"></div>
@@ -547,7 +549,7 @@ main{padding:24px;overflow-x:hidden}
       <div class="fm"><label>Prioridade</label><select id="mt-prio"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
     </div>
     <div class="form-actions">
-      <button class="btn-primary" id="mt-save" onclick="addMeta()">Criar meta</button>
+      <button class="btn-primary" id="mt-save" onclick="saveMeta()">Salvar</button>
       <button class="btn-outline" onclick="closeModal('m-meta')">Cancelar</button>
     </div>
   </div>
@@ -637,19 +639,27 @@ function showPage(id, btn){
 }
 
 function openModal(id){
-  // Ao abrir modal de gasto, pré-preenche a data com o mês selecionado
-  if(id==='m-gasto'){
+  // Ao abrir modal de gasto sem ser via editGasto, reseta para modo "novo"
+  if(id==='m-gasto' && !document.getElementById('g-edit-id').value){
     const today = new Date()
     const [y,m] = state.currentMonth.split('-').map(Number)
     const isCurrent = (today.getFullYear()===y && today.getMonth()+1===m)
-    const dateVal = isCurrent
+    document.getElementById('g-date').value = isCurrent
       ? today.toISOString().split('T')[0]
       : `${state.currentMonth}-01`
-    document.getElementById('g-date').value = dateVal
+    document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
+  }
+  if(id==='m-meta' && !document.getElementById('mt-edit-id').value){
+    document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
+    document.getElementById('mt-save').textContent='Criar meta'
   }
   document.getElementById(id).classList.add('open')
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open') }
+function closeModal(id){
+  document.getElementById(id).classList.remove('open')
+  if(id==='m-gasto'){ document.getElementById('g-edit-id').value=''; document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>' }
+  if(id==='m-meta') { document.getElementById('mt-edit-id').value=''; document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>' }
+}
 document.querySelectorAll('.modal-overlay').forEach(m=>
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') })
 )
@@ -860,14 +870,22 @@ async function loadApp(user){
 
 async function fetchAll(){
   const [start, end] = ymRange(state.currentMonth)
-  const [g, m, r] = await Promise.all([
+  const [g, gRec, m, r] = await Promise.all([
+    // Gastos normais do mês atual
     supa.from('gastos').select('*').eq('user_id', state.user.id)
       .gte('data', start).lte('data', end).order('data',{ascending:false}),
+    // Gastos fixos recorrentes criados ANTES do mês atual (aparecem em todos os meses seguintes)
+    supa.from('gastos').select('*').eq('user_id', state.user.id)
+      .eq('recorrente', true).lt('data', start).order('data',{ascending:false}),
     supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
     supa.from('rendas').select('*').eq('user_id', state.user.id)
       .eq('mes', state.currentMonth).order('created_at',{ascending:false}),
   ])
-  state.gastos = g.data || []
+  // Mescla: gastos do mês + recorrentes de meses anteriores (sem duplicar por id)
+  const gastosDoMes = g.data || []
+  const idsDoMes = new Set(gastosDoMes.map(x=>x.id))
+  const recorrentes = (gRec.data || []).filter(x=>!idsDoMes.has(x.id))
+  state.gastos = [...gastosDoMes, ...recorrentes]
   state.metas  = m.data || []
   state.renda  = r.data || []
 }
@@ -981,14 +999,14 @@ function renderGastos(){
 
   const tb = document.getElementById('all-tx')
   tb.innerHTML = !state.gastos.length
-    ? '<tr><td colspan="6" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
+    ? '<tr><td colspan="7" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
     : state.gastos.map(g=>`<tr>
-        <td>${g.descricao}</td>
+        <td>${g.descricao}${g.recorrente?'<span title="Recorrente" style="margin-left:6px;opacity:.7">🔄</span>':''}</td>
         <td><span class="cat-dot" style="background:${catColors[g.categoria]||'#555'}"></span>${g.categoria}</td>
         <td>${g.data||'—'}</td>
         <td class="amt-neg">-R$${n(Number(g.valor))}</td>
         <td><span class="status-pill ${g.tipo==='Fixo'?'pill-ok':'pill-warn'}">${g.tipo}</span></td>
-        <td><button class="del-btn" onclick="delGasto('${g.id}')">✕</button></td>
+        <td><button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editGasto('${g.id}')">✎</button><button class="del-btn" onclick="delGasto('${g.id}',${!!g.recorrente})">✕</button></td>
       </tr>`).join('')
 }
 
@@ -1019,6 +1037,7 @@ function renderMetas(){
       <div class="goal-footer"><span>${pct}% concluído</span><span>Faltam R$${n(Math.max(0,Number(m.alvo)-Number(m.atual)))}</span></div>
       <div class="goal-actions">
         ${!m.concluida?`<button class="goal-btn" onclick="openDeposit('${m.id}')">+ Adicionar valor</button>`:''}
+        <button class="goal-btn" onclick="editMeta('${m.id}')">✎ Editar</button>
         <button class="goal-btn danger" onclick="delMeta('${m.id}')">Excluir</button>
       </div>
     </div>`
@@ -1050,52 +1069,117 @@ function renderRenda(){
 // ══════════════════════════════════════════
 // CRUD — Supabase
 // ══════════════════════════════════════════
-async function addGasto(){
-  const desc = document.getElementById('g-desc').value.trim()
-  const val  = parseFloat(document.getElementById('g-val').value)
-  const cat  = document.getElementById('g-cat').value
-  const tipo = document.getElementById('g-tipo').value
-  const date = document.getElementById('g-date').value
+function editGasto(id){
+  const g = state.gastos.find(x=>x.id===id)
+  if(!g) return
+  document.getElementById('g-edit-id').value = id
+  document.getElementById('g-desc').value    = g.descricao
+  document.getElementById('g-val').value     = g.valor
+  document.getElementById('g-date').value    = g.data||''
+  document.getElementById('g-cat').value     = g.categoria
+  document.getElementById('g-tipo').value    = g.tipo
+  document.getElementById('m-gasto-title').innerHTML = 'Editar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
+  openModal('m-gasto')
+}
+
+async function saveGasto(){
+  const desc   = document.getElementById('g-desc').value.trim()
+  const val    = parseFloat(document.getElementById('g-val').value)
+  const cat    = document.getElementById('g-cat').value
+  const tipo   = document.getElementById('g-tipo').value
+  const date   = document.getElementById('g-date').value
+  const editId = document.getElementById('g-edit-id').value
   if(!desc||!val||val<=0){ alert('Preencha descrição e valor.'); return }
-  if(!isPro()&&state.gastos.length>=FREE_GASTOS){ alert('Limite do plano gratuito atingido.'); closeModal('m-gasto'); go('screen-paywall'); return }
   document.getElementById('g-save').disabled=true
-  const { data, error } = await supa.from('gastos').insert({
-    user_id: state.user.id, descricao:desc, valor:val, categoria:cat, tipo, data:date||new Date().toISOString().split('T')[0]
-  }).select().single()
-  document.getElementById('g-save').disabled=false
-  if(error){ alert('Erro ao salvar: '+error.message); return }
-  state.gastos.unshift(data)
-  closeModal('m-gasto')
+  if(editId){
+    // Editar existente
+    const recorrente = tipo==='Fixo'
+    const { data, error } = await supa.from('gastos').update({
+      descricao:desc, valor:val, categoria:cat, tipo, data:date||new Date().toISOString().split('T')[0], recorrente
+    }).eq('id',editId).select().single()
+    document.getElementById('g-save').disabled=false
+    if(error){ alert('Erro ao salvar: '+error.message); return }
+    const idx = state.gastos.findIndex(x=>x.id===editId)
+    if(idx>=0) state.gastos[idx]=data
+  } else {
+    // Novo gasto
+    if(!isPro()&&state.gastos.filter(g=>!g.recorrente||g.data>=ymRange(state.currentMonth)[0]).length>=FREE_GASTOS){
+      alert('Limite do plano gratuito atingido.'); closeModal('m-gasto'); go('screen-paywall'); return
+    }
+    const recorrente = tipo==='Fixo'
+    const { data, error } = await supa.from('gastos').insert({
+      user_id:state.user.id, descricao:desc, valor:val, categoria:cat, tipo,
+      data:date||new Date().toISOString().split('T')[0], recorrente
+    }).select().single()
+    document.getElementById('g-save').disabled=false
+    if(error){ alert('Erro ao salvar: '+error.message); return }
+    state.gastos.unshift(data)
+  }
+  // Reset modal
+  document.getElementById('g-edit-id').value=''
   document.getElementById('g-desc').value=''
   document.getElementById('g-val').value=''
+  document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
+  closeModal('m-gasto')
   renderAll()
 }
 
-async function delGasto(id){
-  if(!confirm('Excluir este gasto?')) return
+async function delGasto(id, recorrente){
+  if(recorrente){
+    const ok = confirm('Este gasto é fixo e aparece em todos os meses.\n\nExcluir o gasto fixo de todos os meses?')
+    if(!ok) return
+  } else {
+    if(!confirm('Excluir este gasto?')) return
+  }
   await supa.from('gastos').delete().eq('id',id)
   state.gastos = state.gastos.filter(g=>g.id!==id)
   renderAll()
 }
 
-async function addMeta(){
-  const nome  = document.getElementById('mt-nome').value.trim()
-  const alvo  = parseFloat(document.getElementById('mt-alvo').value)||0
-  const atual = parseFloat(document.getElementById('mt-atual').value)||0
-  const prazo = document.getElementById('mt-prazo').value
+function editMeta(id){
+  const m = state.metas.find(x=>x.id===id)
+  if(!m) return
+  document.getElementById('mt-edit-id').value = id
+  document.getElementById('mt-nome').value    = m.nome
+  document.getElementById('mt-alvo').value    = m.alvo
+  document.getElementById('mt-atual').value   = m.atual
+  document.getElementById('mt-prazo').value   = m.prazo||''
+  document.getElementById('m-meta-title').innerHTML = 'Editar meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
+  openModal('m-meta')
+}
+
+async function saveMeta(){
+  const nome   = document.getElementById('mt-nome').value.trim()
+  const alvo   = parseFloat(document.getElementById('mt-alvo').value)||0
+  const atual  = parseFloat(document.getElementById('mt-atual').value)||0
+  const prazo  = document.getElementById('mt-prazo').value
+  const editId = document.getElementById('mt-edit-id').value
   if(!nome||!alvo){ alert('Preencha nome e valor alvo.'); return }
-  if(!isPro()&&state.metas.filter(m=>!m.concluida).length>=FREE_METAS){ alert('Limite do plano gratuito atingido.'); closeModal('m-meta'); go('screen-paywall'); return }
   document.getElementById('mt-save').disabled=true
-  const { data, error } = await supa.from('metas').insert({
-    user_id:state.user.id, nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
-  }).select().single()
-  document.getElementById('mt-save').disabled=false
-  if(error){ alert('Erro: '+error.message); return }
-  state.metas.unshift(data)
-  closeModal('m-meta')
+  if(editId){
+    const { data, error } = await supa.from('metas').update({
+      nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
+    }).eq('id',editId).select().single()
+    document.getElementById('mt-save').disabled=false
+    if(error){ alert('Erro: '+error.message); return }
+    const idx = state.metas.findIndex(x=>x.id===editId)
+    if(idx>=0) state.metas[idx]=data
+  } else {
+    if(!isPro()&&state.metas.filter(m=>!m.concluida).length>=FREE_METAS){ alert('Limite do plano gratuito atingido.'); closeModal('m-meta'); go('screen-paywall'); return }
+    const { data, error } = await supa.from('metas').insert({
+      user_id:state.user.id, nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
+    }).select().single()
+    document.getElementById('mt-save').disabled=false
+    if(error){ alert('Erro: '+error.message); return }
+    state.metas.unshift(data)
+  }
+  // Reset modal
+  document.getElementById('mt-edit-id').value=''
   document.getElementById('mt-nome').value=''
   document.getElementById('mt-alvo').value=''
   document.getElementById('mt-atual').value=''
+  document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
+  closeModal('m-meta')
   renderAll()
 }
 
