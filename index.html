@@ -286,7 +286,7 @@ main{padding:24px;overflow-x:hidden}
   <div class="paywall-wrap">
     <div class="paywall-box">
       <div class="auth-logo">PREDADOR<span style="color:#C0392B">FIN</span></div>
-      <div style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:28px">Escolha seu plano</div>
+      <div style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:28px">Bem-vindo! Escolha como quer começar</div>
       <div class="plan-cards" style="grid-template-columns:1fr 1fr 1fr">
         <div class="plan-card" id="plan-free" onclick="selPlan('free')">
           <div class="plan-badge">Gratuito</div>
@@ -301,10 +301,10 @@ main{padding:24px;overflow-x:hidden}
           </div>
         </div>
         <div class="plan-card selected" id="plan-pro" onclick="selPlan('pro')">
-          <div class="plan-badge">Recomendado</div>
+          <div class="plan-badge">⭐ Recomendado</div>
           <div class="plan-name">Predador PRO</div>
-          <div class="plan-price"><sup>R$</sup>19,90</div>
-          <div class="plan-period">por mês</div>
+          <div class="plan-price"><sup>R$</sup>0</div>
+          <div class="plan-period">7 dias grátis, depois R$19,90/mês</div>
           <div class="plan-features">
             <div class="plan-feat">Gastos ilimitados</div>
             <div class="plan-feat">Metas ilimitadas</div>
@@ -665,9 +665,8 @@ async function doRegister(){
   document.getElementById('reg-btn').textContent='Criar conta grátis'
   if(error){ err.textContent=error.message; err.classList.add('show'); return }
   if(data.user){
-    ok.textContent='Conta criada! Redirecionando...'
-    ok.classList.add('show')
-    setTimeout(()=>loadApp(data.user), 1200)
+    state.user = data.user
+    go('screen-paywall')
   } else {
     ok.textContent='Verifique seu e-mail para confirmar o cadastro.'
     ok.classList.add('show')
