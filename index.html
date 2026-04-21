@@ -106,12 +106,13 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;d
 .sb-item.active{background:var(--bg4);color:var(--white)}
 .sb-icon{width:16px;font-size:14px;text-align:center;flex-shrink:0}
 .sb-divider{height:1px;background:var(--border);margin:12px 16px}
-.sb-budget{padding:12px 16px;margin:0 12px;background:var(--bg3);border:1px solid var(--border)}
+.sb-budget{padding:12px 14px;margin:0 10px;background:var(--bg3);border:1px solid var(--border)}
 .sb-budget-label{font-size:10px;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
-.sb-vals{display:flex;justify-content:space-between;font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:2px}
+.sb-spent{font-family:'Bebas Neue',sans-serif;font-size:clamp(18px,4vw,26px);color:var(--red2);line-height:1.1;word-break:break-all}
+.sb-budget-of{font-size:11px;color:var(--gray);margin-top:2px;margin-bottom:4px}
 .sb-bar{height:4px;background:var(--bg4);border-radius:2px;margin:6px 0 4px}
 .sb-fill{height:100%;border-radius:2px;transition:width .4s}
-.sb-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--gray)}
+.sb-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--gray);flex-wrap:wrap;gap:2px}
 
 main{padding:24px;overflow-x:hidden}
 @media(max-width:700px){main{padding:16px 14px 80px}}
@@ -404,9 +405,10 @@ main{padding:24px;overflow-x:hidden}
           <span id="sb-month" style="flex:1;text-align:center">—</span>
           <button onclick="changeMonth(1)" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Próximo mês">›</button>
         </div>
-        <div class="sb-vals"><span id="sb-spent" style="color:var(--red2)">R$0</span><span id="sb-total" style="color:var(--gray)">/ R$5.000</span></div>
+        <div class="sb-spent" id="sb-spent">R$0</div>
+        <div class="sb-budget-of" id="sb-total">de R$0</div>
         <div class="sb-bar"><div class="sb-fill" id="sb-fill" style="background:var(--gold)"></div></div>
-        <div class="sb-nums"><span id="sb-pct">0% usado</span><span id="sb-free" style="color:var(--green2)">R$5.000 livre</span></div>
+        <div class="sb-nums"><span id="sb-pct">0% usado</span><span id="sb-free" style="color:var(--green2)">R$0 livre</span></div>
       </div>
     </div>
     <div class="sb-divider"></div>
@@ -930,7 +932,7 @@ function renderSidebar(){
   const pct    = budget > 0 ? Math.min(100, Math.round((total/budget)*100)) : 0
   const livre  = Math.max(0, budget - total)
   document.getElementById('sb-spent').textContent = 'R$'+n(total)
-  document.getElementById('sb-total').textContent = '/ R$'+n(budget)
+  document.getElementById('sb-total').textContent = 'de R$'+n(budget)
   document.getElementById('sb-pct').textContent   = pct+'% usado'
   document.getElementById('sb-free').textContent  = 'R$'+n(livre)+' livre'
   const fill = document.getElementById('sb-fill')
