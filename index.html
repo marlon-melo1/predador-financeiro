@@ -870,22 +870,16 @@ async function loadApp(user){
 
 async function fetchAll(){
   const [start, end] = ymRange(state.currentMonth)
-  const [g, gRec, m, r] = await Promise.all([
-    // Gastos normais do mês atual
+  // Query única: gastos do mês OU gastos fixos recorrentes de meses anteriores
+  const [g, m, r] = await Promise.all([
     supa.from('gastos').select('*').eq('user_id', state.user.id)
-      .gte('data', start).lte('data', end).order('data',{ascending:false}),
-    // Gastos fixos recorrentes criados ANTES do mês atual (aparecem em todos os meses seguintes)
-    supa.from('gastos').select('*').eq('user_id', state.user.id)
-      .eq('recorrente', true).lt('data', start).order('data',{ascending:false}),
+      .or(`and(data.gte.${start},data.lte.${end}),and(recorrente.is.true,data.lt.${start})`)
+      .order('data',{ascending:false}),
     supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
     supa.from('rendas').select('*').eq('user_id', state.user.id)
       .eq('mes', state.currentMonth).order('created_at',{ascending:false}),
   ])
-  // Mescla: gastos do mês + recorrentes de meses anteriores (sem duplicar por id)
-  const gastosDoMes = g.data || []
-  const idsDoMes = new Set(gastosDoMes.map(x=>x.id))
-  const recorrentes = (gRec.data || []).filter(x=>!idsDoMes.has(x.id))
-  state.gastos = [...gastosDoMes, ...recorrentes]
+  state.gastos = g.data || []
   state.metas  = m.data || []
   state.renda  = r.data || []
 }
