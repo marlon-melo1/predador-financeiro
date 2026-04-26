@@ -1,1427 +1,1737 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Predador Financeiro</title>
-
-<!-- PWA -->
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#C0392B">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PredadorFin">
-<link rel="apple-touch-icon" href="/icon-192.png">
-
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;
-  --red:#C0392B;--red2:#E74C3C;
-  --green:#1E8449;--green2:#27AE60;
-  --gold:#D4AC0D;--blue2:#2980B9;
-  --white:#F0EFE8;--gray:#777;--gray2:#333;--border:#2a2a2a;
-}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;line-height:1.5;min-height:100vh}
-
-.screen{display:none}.screen.active{display:block}
-
-/* ── LOADING ── */
-#screen-loading{display:none!important}
-.loader{text-align:center}
-.loader-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.06em;margin-bottom:16px}
-.loader-logo span{color:var(--red)}
-.loader-bar{width:200px;height:3px;background:var(--bg4);border-radius:2px;margin:0 auto}
-.loader-fill{height:100%;background:var(--red);border-radius:2px;animation:load 1.2s ease forwards}
-@keyframes load{from{width:0}to{width:100%}}
-.loader-text{font-size:12px;color:var(--gray);margin-top:12px;letter-spacing:.1em;text-transform:uppercase}
-
-/* ── AUTH ── */
-.auth-wrap{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px;padding-top:48px}
-.auth-box{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);padding:40px 36px}
-.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.06em;text-align:center;margin-bottom:6px}
-.auth-logo span{color:var(--red)}
-.auth-tagline{text-align:center;font-size:13px;color:var(--gray);margin-bottom:32px}
-.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.field label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gray)}
-.field input{background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:11px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;width:100%}
-.field input:focus{border-color:var(--red)}
-.field input::placeholder{color:var(--gray2)}
-.btn-full{width:100%;padding:13px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--red);color:#fff;border:none;cursor:pointer;transition:background .15s;margin-top:8px}
-.btn-full:hover{background:var(--red2)}
-.btn-full:disabled{opacity:.5;cursor:not-allowed}
-.btn-full.outline{background:transparent;border:1px solid var(--border);color:var(--gray);margin-top:10px}
-.btn-full.outline:hover{border-color:var(--gray);color:var(--white)}
-.auth-switch{text-align:center;font-size:13px;color:var(--gray);margin-top:20px}
-.auth-switch a{color:var(--red);cursor:pointer}
-.msg-error{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#E74C3C;font-size:13px;padding:10px 14px;margin-bottom:14px;display:none}
-.msg-error.show{display:block}
-.msg-ok{background:rgba(30,132,73,.12);border:1px solid rgba(30,132,73,.3);color:#27AE60;font-size:13px;padding:10px 14px;margin-bottom:14px;display:none}
-.msg-ok.show{display:block}
-
-/* ── PAYWALL ── */
-.paywall-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.paywall-box{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--border);padding:40px 36px}
-.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
-.plan-card{background:var(--bg3);border:1px solid var(--border);padding:20px 16px;cursor:pointer;transition:border-color .15s;position:relative}
-.plan-card:hover{border-color:var(--gray)}
-.plan-card.selected{border-color:var(--red)}
-.plan-card.selected::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)}
-.plan-badge{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
-.plan-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px}
-.plan-price{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1}
-.plan-price sup{font-size:14px;vertical-align:super;color:var(--gray)}
-.plan-period{font-size:11px;color:var(--gray);margin-top:2px}
-.plan-feat{font-size:12px;color:#aaa;padding:3px 0 3px 14px;position:relative}
-.plan-feat::before{content:'✓';position:absolute;left:0;color:var(--green2);font-weight:700}
-.plan-feat.off{color:var(--gray);text-decoration:line-through}
-.plan-feat.off::before{content:'✗';color:var(--gray)}
-.plan-features{margin-top:14px}
-.paywall-divider{text-align:center;font-size:11px;color:var(--gray);margin:16px 0;letter-spacing:.1em;text-transform:uppercase}
-.trial-note{text-align:center;font-size:12px;color:var(--gray);margin-top:14px}
-.trial-note strong{color:var(--white)}
-.paywall-out{text-align:center;font-size:12px;color:var(--gray);margin-top:14px;cursor:pointer}
-.paywall-out:hover{color:var(--red)}
-
-/* ── MAIN APP ── */
-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
-.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em}
-.nav-logo span{color:var(--red)}
-.nav-tabs{display:flex;gap:2px}
-.nav-tab{padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
-.nav-tab:hover{color:var(--white)}
-.nav-tab.active{color:var(--white);border-bottom-color:var(--red)}
-.nav-right{display:flex;align-items:center;gap:10px}
-.nav-user{font-size:12px;color:var(--gray)}
-.nav-user strong{color:var(--white)}
-.badge-plan{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;padding:3px 9px}
-.badge-pro{background:var(--red);color:#fff}
-.badge-free{background:var(--gray2);color:var(--gray)}
-.btn-sm{padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--gray);cursor:pointer;transition:all .15s}
-.btn-sm:hover{border-color:var(--red);color:var(--white)}
-
-.app{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 52px)}
-@media(max-width:700px){.app{grid-template-columns:1fr}.sidebar{display:none}}
-
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0}
-.sb-section{padding:0 16px;margin-bottom:20px}
-.sb-label{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);margin-bottom:8px}
-.sb-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;cursor:pointer;transition:background .15s;color:var(--gray);font-size:13px;margin-bottom:2px}
-.sb-item:hover{background:var(--bg3);color:var(--white)}
-.sb-item.active{background:var(--bg4);color:var(--white)}
-.sb-icon{width:16px;font-size:14px;text-align:center;flex-shrink:0}
-.sb-divider{height:1px;background:var(--border);margin:12px 16px}
-.sb-budget{padding:16px;margin:0 10px;background:var(--bg3);border:1px solid var(--border)}
-.sb-budget-label{font-size:10px;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
-.sb-val-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.sb-val-item{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
-.sb-val-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);white-space:nowrap}
-.sb-val-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
-.sb-val-num.red{color:var(--red2)}
-.sb-val-num.green{color:var(--green2)}
-.sb-bar{height:5px;background:var(--bg4);border-radius:2px;margin:0 0 8px}
-.sb-fill{height:100%;border-radius:2px;transition:width .4s}
-.sb-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--gray);flex-wrap:wrap;gap:2px}
-
-main{padding:24px;overflow-x:hidden}
-@media(max-width:700px){main{padding:16px 14px 80px}}
-.page{display:none}.page.active{display:block}
-
-.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
-.page-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1}
-.page-title span{color:var(--red)}
-.page-sub{font-size:13px;color:var(--gray);margin-top:2px}
-.btn-primary{padding:9px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--red);color:#fff;border:none;cursor:pointer;transition:background .15s}
-.btn-primary:hover{background:var(--red2)}
-.btn-outline{padding:9px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--white);border:1px solid var(--border);cursor:pointer;transition:all .15s}
-.btn-outline:hover{border-color:var(--gray)}
-
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
-.mcard{background:var(--bg2);border:1px solid var(--border);padding:16px 18px;position:relative;overflow:hidden}
-.mcard::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px}
-.mcard.c-green::before{background:var(--green)}
-.mcard.c-red::before{background:var(--red)}
-.mcard.c-gold::before{background:var(--gold)}
-.mcard.c-blue::before{background:var(--blue2)}
-.mcard-label{font-size:11px;color:var(--gray);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-.mcard-val{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1}
-.mcard-val.green{color:var(--green2)}.mcard-val.red{color:var(--red2)}.mcard-val.gold{color:var(--gold)}.mcard-val.blue{color:var(--blue2)}
-.mcard-sub{font-size:11px;color:var(--gray);margin-top:4px}
-.mcard-delta{font-size:11px;margin-top:4px}
-.mcard-delta.up{color:var(--green2)}.mcard-delta.down{color:var(--red2)}
-
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-@media(max-width:900px){.grid2{grid-template-columns:1fr}}
-
-.panel{background:var(--bg2);border:1px solid var(--border);padding:20px}
-.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
-.panel-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.panel-action{font-size:12px;color:var(--red);cursor:pointer;background:none;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-
-.tbl{width:100%;border-collapse:collapse}
-.tbl th{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.tbl td{padding:10px;font-size:13px;border-bottom:1px solid var(--border)}
-.tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:var(--bg3)}
-.cat-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
-.amt-neg{color:var(--red2)}.amt-pos{color:var(--green2)}
-.status-pill{font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 8px;text-transform:uppercase}
-.pill-ok{background:rgba(30,132,73,.15);color:#2ECC71}
-.pill-warn{background:rgba(212,172,13,.15);color:var(--gold)}
-.del-btn{background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px;padding:2px 6px}
-.del-btn:hover{color:var(--red2)}
-
-.prog-row{margin-bottom:14px}
-.prog-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
-.prog-name{color:var(--white);font-weight:500}
-.prog-val{color:var(--gray)}
-.prog-bar{height:6px;background:var(--bg4);border-radius:1px}
-.prog-fill{height:100%;border-radius:1px;transition:width .6s}
-
-.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.donut-legend{flex:1;min-width:140px}
-.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
-.legend-dot{width:10px;height:10px;flex-shrink:0}
-.legend-pct{margin-left:auto;color:var(--gray);font-size:12px}
-
-.goal-card{background:var(--bg3);border:1px solid var(--border);padding:16px;margin-bottom:12px}
-.goal-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.goal-name{font-size:14px;font-weight:500}
-.goal-target{font-size:12px;color:var(--gray)}
-.goal-current{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)}
-.goal-bar{height:4px;background:var(--bg4);margin:8px 0 4px}
-.goal-fill{height:100%;background:var(--gold)}
-.goal-footer{display:flex;justify-content:space-between;font-size:11px;color:var(--gray)}
-.goal-actions{display:flex;gap:6px;margin-top:10px}
-.goal-btn{font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer}
-.goal-btn:hover{border-color:var(--gold);color:var(--gold)}
-.goal-btn.danger:hover{border-color:var(--red);color:var(--red2)}
-
-.renda-card{background:var(--bg3);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
-.renda-icon{width:36px;height:36px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.renda-body{flex:1}
-.renda-name{font-size:13px;font-weight:500}
-.renda-type{font-size:11px;color:var(--gray)}
-.renda-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green2)}
-
-.limit-banner{background:rgba(212,172,13,.08);border:1px solid rgba(212,172,13,.25);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.limit-banner p{font-size:13px;color:var(--gold)}
-.limit-banner button{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;background:var(--gold);color:#000;border:none;cursor:pointer}
-
-.empty-state{text-align:center;padding:40px 20px;color:var(--gray);font-size:13px}
-.empty-state p{margin-bottom:12px}
-
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border);padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.modal-close{background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px}
-.modal-close:hover{color:var(--white)}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
-.fm{display:flex;flex-direction:column;gap:6px}
-.fm label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray)}
-.fm input,.fm select{background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:9px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;width:100%}
-.fm input:focus,.fm select:focus{border-color:var(--red)}
-.fm select option{background:var(--bg3)}
-.form-actions{display:flex;gap:10px;margin-top:16px}
-
-.mobile-nav{display:none;background:var(--bg2);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:100}
-@media(max-width:700px){.mobile-nav{display:flex}}
-.mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);cursor:pointer;border:none;background:none}
-.mnav-item.active{color:var(--red)}
-.mnav-icon{font-size:18px}
-
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border)}
-</style>
-</head>
-<body>
-
-<!-- LOADING -->
-<div class="screen" id="screen-loading"></div>
-
-<!-- LOGIN -->
-<div class="screen active" id="screen-login">
-  <div class="auth-wrap">
-    <div class="auth-box">
-      <div class="auth-logo">PREDADOR<span>FIN</span></div>
-      <div class="auth-tagline">Controle financeiro para quem executa</div>
-      <div class="auth-title">Entrar na conta</div>
-      <div class="msg-error" id="login-err"></div>
-      <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <button class="btn-full" id="login-btn" onclick="doLogin()">Entrar</button>
-      <button class="btn-full outline" onclick="go('screen-register')">Criar conta grátis</button>
-      <p class="auth-switch">Esqueceu a senha? <a onclick="go('screen-reset')">Recuperar</a></p>
-    </div>
-  </div>
-</div>
-
-<!-- CADASTRO -->
-<div class="screen" id="screen-register">
-  <div class="auth-wrap">
-    <div class="auth-box">
-      <div class="auth-logo">PREDADOR<span>FIN</span></div>
-      <div class="auth-tagline">7 dias grátis. Sem cartão.</div>
-      <div class="auth-title">Criar conta</div>
-      <div class="msg-error" id="reg-err"></div>
-      <div class="msg-ok" id="reg-ok"></div>
-      <div class="field"><label>Nome</label><input type="text" id="reg-name" placeholder="Seu nome"></div>
-      <div class="field"><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com"></div>
-      <div class="field"><label>Senha</label><input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres"></div>
-      <div class="field"><label>Confirmar senha</label><input type="password" id="reg-pass2" placeholder="Repita a senha"></div>
-      <button class="btn-full" id="reg-btn" onclick="doRegister()">Criar conta grátis</button>
-      <p class="auth-switch">Já tem conta? <a onclick="go('screen-login')">Entrar</a></p>
-    </div>
-  </div>
-</div>
-
-<!-- VERIFICAR EMAIL -->
-<div class="screen" id="screen-verify-email">
-  <div class="auth-wrap">
-    <div class="auth-box" style="text-align:center">
-      <div class="auth-logo">PREDADOR<span>FIN</span></div>
-      <div class="auth-tagline">Quase lá!</div>
-      <div style="font-size:48px;margin:24px 0">📧</div>
-      <div class="auth-title" style="border:none;text-align:center">Verifique seu e-mail</div>
-      <p style="font-size:14px;color:#aaa;margin-bottom:8px">Enviamos um link de confirmação para:</p>
-      <p style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:24px" id="verify-email-addr"></p>
-      <p style="font-size:13px;color:var(--gray);margin-bottom:28px;line-height:1.6">Clique no link recebido para ativar sua conta.<br>Depois volte aqui para escolher seu plano.</p>
-      <div id="verify-resend-ok" class="msg-ok"></div>
-      <button class="btn-full" onclick="reenviarVerificacao()">Reenviar e-mail</button>
-      <button class="btn-full outline" onclick="go('screen-login')" style="margin-top:10px">Já confirmei — Entrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- RESET SENHA -->
-<div class="screen" id="screen-reset">
-  <div class="auth-wrap">
-    <div class="auth-box">
-      <div class="auth-logo">PREDADOR<span>FIN</span></div>
-      <div class="auth-tagline">Recuperar acesso</div>
-      <div class="auth-title">Redefinir senha</div>
-      <div class="msg-error" id="reset-err"></div>
-      <div class="msg-ok" id="reset-ok"></div>
-      <div class="field"><label>E-mail cadastrado</label><input type="email" id="reset-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doReset()"></div>
-      <button class="btn-full" id="reset-btn" onclick="doReset()">Enviar link de recuperação</button>
-      <button class="btn-full outline" onclick="go('screen-login')">Voltar ao login</button>
-    </div>
-  </div>
-</div>
-
-<!-- NOVA SENHA -->
-<div class="screen" id="screen-new-password">
-  <div class="auth-wrap">
-    <div class="auth-box">
-      <div class="auth-logo">PREDADOR<span>FIN</span></div>
-      <div class="auth-tagline">Criar nova senha</div>
-      <div class="auth-title">Nova senha</div>
-      <div class="msg-error" id="newpass-err"></div>
-      <div class="msg-ok" id="newpass-ok"></div>
-      <div class="field"><label>Nova senha</label><input type="password" id="newpass1" placeholder="Mínimo 6 caracteres"></div>
-      <div class="field"><label>Confirmar nova senha</label><input type="password" id="newpass2" placeholder="Repita a senha"></div>
-      <button class="btn-full" id="newpass-btn" onclick="doUpdatePassword()">Salvar nova senha</button>
-    </div>
-  </div>
-</div>
-
-<!-- PAYWALL -->
-<div class="screen" id="screen-paywall">
-  <div class="paywall-wrap">
-    <div class="paywall-box">
-      <div class="auth-logo">PREDADOR<span style="color:#C0392B">FIN</span></div>
-      <div style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:28px">Bem-vindo! Escolha como quer começar</div>
-      <div class="plan-cards" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="plan-card" id="plan-free" onclick="selPlan('free')">
-          <div class="plan-badge">Gratuito</div>
-          <div class="plan-name">Starter</div>
-          <div class="plan-price"><sup>R$</sup>0</div>
-          <div class="plan-period">para sempre</div>
-          <div class="plan-features">
-            <div class="plan-feat">Até 10 gastos/mês</div>
-            <div class="plan-feat">2 metas ativas</div>
-            <div class="plan-feat">Dashboard básico</div>
-            <div class="plan-feat off">Exportar dados</div>
-          </div>
-        </div>
-        <div class="plan-card selected" id="plan-pro" onclick="selPlan('pro')">
-          <div class="plan-badge">⭐ Recomendado</div>
-          <div class="plan-name">Predador PRO</div>
-          <div class="plan-price"><sup>R$</sup>0</div>
-          <div class="plan-period">7 dias grátis, depois R$19,90/mês</div>
-          <div class="plan-features">
-            <div class="plan-feat">Gastos ilimitados</div>
-            <div class="plan-feat">Metas ilimitadas</div>
-            <div class="plan-feat">Dashboard completo</div>
-            <div class="plan-feat">Exportar dados</div>
-          </div>
-        </div>
-        <div class="plan-card" id="plan-bundle" onclick="selPlan('bundle')">
-          <div class="plan-badge" style="color:#F39C12">Bundle</div>
-          <div class="plan-name">E-book + PRO</div>
-          <div class="plan-price"><sup>R$</sup>97</div>
-          <div class="plan-period">único · 3 meses PRO</div>
-          <div class="plan-features">
-            <div class="plan-feat">E-book Predador Financeiro</div>
-            <div class="plan-feat">3 meses PRO inclusos</div>
-            <div class="plan-feat">Dashboard completo</div>
-            <div class="plan-feat">Exportar dados</div>
-          </div>
-        </div>
-      </div>
-      <button class="btn-full" id="paywall-btn" onclick="ativarPlano()">Começar 7 dias grátis — PRO</button>
-      <div class="paywall-divider">— ou —</div>
-      <button class="btn-full outline" onclick="ativarFree()">Continuar com Starter gratuito</button>
-      <p class="trial-note"><strong>7 dias grátis</strong> no PRO, depois R$19,90/mês. Cancele quando quiser.</p>
-      <p class="paywall-out" onclick="doLogout()">Sair da conta</p>
-    </div>
-  </div>
-</div>
-
-<!-- APP PRINCIPAL -->
-<div class="screen" id="screen-app">
-<nav>
-  <div class="nav-logo">PREDADOR<span>FIN</span></div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('dashboard',this)">Dashboard</button>
-    <button class="nav-tab" onclick="showPage('gastos',this)">Gastos</button>
-    <button class="nav-tab" onclick="showPage('metas',this)">Metas</button>
-    <button class="nav-tab" onclick="showPage('renda',this)">Renda</button>
-  </div>
-  <div class="nav-right">
-    <span class="nav-user">Olá, <strong id="nav-name">—</strong></span>
-    <span class="badge-plan badge-pro" id="nav-badge">PRO</span>
-    <button class="btn-sm" onclick="doLogout()">Sair</button>
-  </div>
-</nav>
-
-<div class="app">
-  <aside class="sidebar">
-    <div class="sb-section">
-      <div class="sb-label">Navegação</div>
-      <div class="sb-item active" onclick="showPage('dashboard',null)"><span class="sb-icon">◈</span>Dashboard</div>
-      <div class="sb-item" onclick="showPage('gastos',null)"><span class="sb-icon">↓</span>Gastos</div>
-      <div class="sb-item" onclick="showPage('metas',null)"><span class="sb-icon">◎</span>Metas</div>
-      <div class="sb-item" onclick="showPage('renda',null)"><span class="sb-icon">↑</span>Renda</div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-section">
-      <div class="sb-label">Orçamento mensal</div>
-      <div class="sb-budget">
-        <div class="sb-budget-label" style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-          <button onclick="changeMonth(-1)" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Mês anterior">‹</button>
-          <span id="sb-month" style="flex:1;text-align:center">—</span>
-          <button onclick="changeMonth(1)" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Próximo mês">›</button>
-        </div>
-        <div class="sb-val-row">
-          <div class="sb-val-item">
-            <span class="sb-val-label">Gastos</span>
-            <span class="sb-val-num red" id="sb-spent">R$0</span>
-          </div>
-          <div class="sb-val-item">
-            <span class="sb-val-label">Renda</span>
-            <span class="sb-val-num green" id="sb-total">R$0</span>
-          </div>
-        </div>
-        <div class="sb-bar"><div class="sb-fill" id="sb-fill" style="background:var(--gold)"></div></div>
-        <div class="sb-nums"><span id="sb-pct">0% usado</span><span id="sb-free" style="color:var(--green2)">R$0 livre</span></div>
-      </div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-section">
-      <div class="sb-label">Ações rápidas</div>
-      <div class="sb-item" onclick="openModal('m-gasto')"><span class="sb-icon">+</span>Novo gasto</div>
-      <div class="sb-item" onclick="openModal('m-meta')"><span class="sb-icon">+</span>Nova meta</div>
-      <div class="sb-item" onclick="openModal('m-renda')"><span class="sb-icon">+</span>Nova renda</div>
-      <div class="sb-item" onclick="go('screen-paywall')"><span class="sb-icon">★</span>Meu plano</div>
-    </div>
-  </aside>
-
-  <main>
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <div><div class="page-title">VISÃO <span>GERAL</span></div><div class="page-sub" id="dash-sub">—</div></div>
-        <button class="btn-primary" onclick="openModal('m-gasto')">+ Registrar gasto</button>
-      </div>
-      <div class="metrics">
-        <div class="mcard c-green"><div class="mcard-label">Renda total</div><div class="mcard-val green" id="d-renda">0</div><div class="mcard-sub">R$ este mês</div></div>
-        <div class="mcard c-red"><div class="mcard-label">Gastos totais</div><div class="mcard-val red" id="d-gastos">0</div><div class="mcard-sub">R$ este mês</div></div>
-        <div class="mcard c-gold"><div class="mcard-label">Saldo livre</div><div class="mcard-val gold" id="d-saldo">0</div><div class="mcard-sub">R$ disponível</div></div>
-        <div class="mcard c-blue"><div class="mcard-label">Metas ativas</div><div class="mcard-val blue" id="d-metas">0</div><div class="mcard-sub">em andamento</div></div>
-      </div>
-      <div class="grid2">
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Gastos por categoria</span></div>
-          <div id="donut-area"><div class="empty-state"><p>Nenhum gasto ainda.</p></div></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Últimas transações</span><button class="panel-action" onclick="showPage('gastos',null)">Ver todas</button></div>
-          <table class="tbl"><thead><tr><th>Descrição</th><th>Cat.</th><th>Valor</th></tr></thead><tbody id="recent-tx"><tr><td colspan="3" class="empty-state">Nenhuma transação.</td></tr></tbody></table>
-        </div>
-      </div>
-    </div>
-
-    <!-- GASTOS -->
-    <div class="page" id="page-gastos">
-      <div class="page-header">
-        <div><div class="page-title">CONTROLE DE <span>GASTOS</span></div><div class="page-sub">Cada real contabilizado</div></div>
-        <button class="btn-primary" onclick="openModal('m-gasto')">+ Novo gasto</button>
-      </div>
-      <div id="banner-gastos" class="limit-banner" style="display:none">
-        <p>Plano gratuito: <strong id="gastos-count">0/10</strong> gastos utilizados este mês.</p>
-        <button onclick="go('screen-paywall')">Upgrade PRO</button>
-      </div>
-      <div class="metrics">
-        <div class="mcard c-red"><div class="mcard-label">Total do mês</div><div class="mcard-val red" id="g-total">0</div><div class="mcard-sub">R$ em gastos</div></div>
-        <div class="mcard c-gold"><div class="mcard-label">Maior categoria</div><div class="mcard-val gold" id="g-top">—</div><div class="mcard-sub" id="g-top-val">—</div></div>
-        <div class="mcard c-green"><div class="mcard-label">Orçamento livre</div><div class="mcard-val green" id="g-livre">0</div><div class="mcard-sub" id="g-livre-sub">de R$0</div></div>
-      </div>
-      <div class="panel" style="margin-bottom:16px">
-        <div class="panel-header"><span class="panel-title">Por categoria</span></div>
-        <div id="cat-prog"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Todas as transações</span></div>
-        <table class="tbl"><thead><tr><th>Descrição</th><th>Categoria</th><th>Data</th><th>Valor</th><th>Tipo</th><th></th></tr></thead><tbody id="all-tx"><tr><td colspan="6" class="empty-state">Nenhum gasto registrado.</td></tr></tbody></table>
-      </div>
-    </div>
-
-    <!-- METAS -->
-    <div class="page" id="page-metas">
-      <div class="page-header">
-        <div><div class="page-title">METAS <span>FINANCEIRAS</span></div><div class="page-sub">Defina alvos. Execute.</div></div>
-        <button class="btn-primary" onclick="openModal('m-meta')">+ Nova meta</button>
-      </div>
-      <div id="banner-metas" class="limit-banner" style="display:none">
-        <p>Plano gratuito: até 2 metas ativas.</p>
-        <button onclick="go('screen-paywall')">Upgrade PRO</button>
-      </div>
-      <div class="metrics">
-        <div class="mcard c-gold"><div class="mcard-label">Metas ativas</div><div class="mcard-val gold" id="m-ativas">0</div><div class="mcard-sub">em andamento</div></div>
-        <div class="mcard c-green"><div class="mcard-label">Concluídas</div><div class="mcard-val green" id="m-done">0</div><div class="mcard-sub">este ano</div></div>
-        <div class="mcard c-blue"><div class="mcard-label">Total guardado</div><div class="mcard-val blue" id="m-saved">0</div><div class="mcard-sub">R$ acumulado</div></div>
-      </div>
-      <div id="goals-list"><div class="empty-state"><p>Nenhuma meta criada ainda.</p></div></div>
-    </div>
-
-    <!-- RENDA -->
-    <div class="page" id="page-renda">
-      <div class="page-header">
-        <div><div class="page-title">CONTROLE DE <span>RENDA</span></div><div class="page-sub">Todas as entradas</div></div>
-        <button class="btn-primary" onclick="openModal('m-renda')">+ Nova renda</button>
-      </div>
-      <div class="metrics">
-        <div class="mcard c-green"><div class="mcard-label">Renda total</div><div class="mcard-val green" id="r-total">0</div><div class="mcard-sub">R$ este mês</div></div>
-        <div class="mcard c-blue"><div class="mcard-label">Renda fixa</div><div class="mcard-val blue" id="r-fixa">0</div><div class="mcard-sub" id="r-fixa-p">0%</div></div>
-        <div class="mcard c-gold"><div class="mcard-label">Renda variável</div><div class="mcard-val gold" id="r-var">0</div><div class="mcard-sub" id="r-var-p">0%</div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Fontes de renda</span><button class="panel-action" onclick="openModal('m-renda')">+ Adicionar</button></div>
-        <div id="renda-list"><div class="empty-state"><p>Nenhuma renda registrada.</p></div></div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<nav class="mobile-nav">
-  <button class="mnav-item active" onclick="showPage('dashboard',this)"><span class="mnav-icon">◈</span>Início</button>
-  <button class="mnav-item" onclick="showPage('gastos',this)"><span class="mnav-icon">↓</span>Gastos</button>
-  <button class="mnav-item" onclick="showPage('metas',this)"><span class="mnav-icon">◎</span>Metas</button>
-  <button class="mnav-item" onclick="showPage('renda',this)"><span class="mnav-icon">↑</span>Renda</button>
-</nav>
-</div><!-- /screen-app -->
-
-<!-- MODALS -->
-<div class="modal-overlay" id="m-gasto">
-  <div class="modal">
-    <div class="modal-title" id="m-gasto-title">Registrar gasto <button class="modal-close" onclick="closeModal('m-gasto')">✕</button></div>
-    <input type="hidden" id="g-edit-id" value="">
-    <div class="form-grid">
-      <div class="fm" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Mercado, Aluguel..."></div>
-      <div class="fm"><label>Valor (R$)</label><input type="number" id="g-val" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="fm" id="fm-g-date"><label>Data</label><input type="date" id="g-date"></div>
-      <div class="fm"><label>Categoria</label>
-        <input type="text" id="g-cat" list="g-cat-list" placeholder="Selecione ou digite..." autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:11px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;width:100%">
-        <datalist id="g-cat-list">
-          <option>Moradia</option><option>Alimentação</option><option>Transporte</option>
-          <option>Saúde</option><option>Lazer</option><option>Educação</option>
-        </datalist>
-      </div>
-      <div class="fm"><label>Tipo</label>
-        <select id="g-tipo" onchange="toggleParcelaFields()"><option>Variável</option><option>Fixo</option><option>Parcelado</option></select>
-      </div>
-      <div class="fm"><label>Forma de pagamento</label>
-        <select id="g-pagamento">
-          <option>Débito/Pix</option>
-          <option>Crédito</option>
-          <option>Dinheiro</option>
-        </select>
-      </div>
-      <!-- Campos extras para Parcelado -->
-      <div id="fm-parcela-inicio" class="fm" style="display:none">
-        <label>Início das parcelas</label>
-        <input type="month" id="g-parcela-inicio">
-      </div>
-      <div id="fm-parcela-fim" class="fm" style="display:none">
-        <label>Fim das parcelas</label>
-        <input type="month" id="g-parcela-fim">
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-primary" id="g-save" onclick="saveGasto()">Salvar</button>
-      <button class="btn-outline" onclick="closeModal('m-gasto')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="m-meta">
-  <div class="modal">
-    <div class="modal-title" id="m-meta-title">Nova meta <button class="modal-close" onclick="closeModal('m-meta')">✕</button></div>
-    <input type="hidden" id="mt-edit-id" value="">
-    <div class="form-grid">
-      <div class="fm" style="grid-column:1/-1"><label>Nome da meta</label><input type="text" id="mt-nome" placeholder="Ex: Reserva de emergência"></div>
-      <div class="fm"><label>Valor alvo (R$)</label><input type="number" id="mt-alvo" placeholder="10.000" min="0"></div>
-      <div class="fm"><label>Já guardado (R$)</label><input type="number" id="mt-atual" placeholder="0" min="0"></div>
-      <div class="fm"><label>Prazo</label><input type="month" id="mt-prazo"></div>
-      <div class="fm"><label>Prioridade</label><select id="mt-prio"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-primary" id="mt-save" onclick="saveMeta()">Salvar</button>
-      <button class="btn-outline" onclick="closeModal('m-meta')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="m-deposit">
-  <div class="modal">
-    <div class="modal-title">Adicionar à meta <button class="modal-close" onclick="closeModal('m-deposit')">✕</button></div>
-    <input type="hidden" id="dep-id">
-    <div class="fm"><label>Valor a adicionar (R$)</label><input type="number" id="dep-val" placeholder="0,00" min="0" step="0.01"></div>
-    <div class="form-actions">
-      <button class="btn-primary" onclick="doDeposit()">Confirmar</button>
-      <button class="btn-outline" onclick="closeModal('m-deposit')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="m-renda">
-  <div class="modal">
-    <div class="modal-title" id="m-renda-title">Nova renda <button class="modal-close" onclick="closeModal('m-renda')">✕</button></div>
-    <input type="hidden" id="r-edit-id" value="">
-    <div class="form-grid">
-      <div class="fm" style="grid-column:1/-1"><label>Fonte</label><input type="text" id="r-nome" placeholder="Ex: Salário, Freelance..."></div>
-      <div class="fm"><label>Valor (R$)</label><input type="number" id="r-val" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="fm"><label>Tipo</label><select id="r-tipo"><option>Renda fixa</option><option>Renda variável</option><option>Investimento</option></select></div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-primary" id="r-save" onclick="saveRenda()">Salvar</button>
-      <button class="btn-outline" onclick="closeModal('m-renda')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ══════════════════════════════════════════
-// SUPABASE INIT
-// ══════════════════════════════════════════
-const SUPA_URL = 'https://pkrgclznrhabcwwcaxgd.supabase.co'
-const SUPA_KEY = 'sb_publishable__CkBIKGynJzqgtvUnApssw_Wio7sycL'
-const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY)
-
-const BUDGET = 5000
-const FREE_GASTOS = 10
-const FREE_METAS  = 2
-const catColors = {Moradia:'#C0392B',Alimentação:'#D4AC0D',Transporte:'#1A5276',Saúde:'#8E44AD',Lazer:'#1E8449',Educação:'#2980B9'}
-const CAT_PALETTE = ['#C0392B','#D4AC0D','#1A5276','#8E44AD','#1E8449','#2980B9','#E67E22','#16A085','#884EA0','#A93226']
-function catColor(cat){ return catColors[cat] || (()=>{ const k=Object.keys(catColors).length; return CAT_PALETTE[k%CAT_PALETTE.length] })() }
-const rendaIcons= {'Renda fixa':'◈','Renda variável':'↑','Investimento':'★'}
-
-const DEFAULT_CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Educação']
-function loadCustomCats(){ try{ return JSON.parse(localStorage.getItem('customCats')||'[]') }catch(e){ return [] } }
-function saveCustomCat(cat){
-  if(!cat||DEFAULT_CATS.includes(cat)) return
-  const list = loadCustomCats()
-  if(!list.includes(cat)){ list.push(cat); localStorage.setItem('customCats',JSON.stringify(list)); refreshCatDatalist() }
-}
-function refreshCatDatalist(){
-  const dl = document.getElementById('g-cat-list')
-  if(!dl) return
-  Array.from(dl.querySelectorAll('option[data-custom]')).forEach(o=>o.remove())
-  loadCustomCats().forEach(cat=>{ const o=document.createElement('option'); o.value=cat; o.setAttribute('data-custom','1'); dl.appendChild(o) })
-}
-
-function toggleParcelaFields(){
-  const tipo = document.getElementById('g-tipo').value
-  const show = tipo === 'Parcelado'
-  document.getElementById('fm-parcela-inicio').style.display = show ? '' : 'none'
-  document.getElementById('fm-parcela-fim').style.display    = show ? '' : 'none'
-  document.getElementById('fm-g-date').style.display         = show ? 'none' : ''
-}
-
-function ymToFirstDay(ym){ return ym ? ym+'-01' : null }
-function ymToLastDay(ym){
-  if(!ym) return null
-  const [y,m] = ym.split('-').map(Number)
-  return `${ym}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`
-}
-
-const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-function ymNow(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` }
-function ymLabel(ym){ const [y,m]=ym.split('-'); return `${MONTHS_PT[+m-1]} ${y}` }
-function ymShift(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+delta,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
-function ymRange(ym){ const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0).getDate(); return [`${ym}-01`,`${ym}-${String(last).padStart(2,'0')}`] }
-
-let state = { user:null, profile:null, gastos:[], metas:[], renda:[], currentMonth: ymNow() }
-
-async function changeMonth(delta){
-  state.currentMonth = ymShift(state.currentMonth, delta)
-  updateMonthUI()
-  await fetchAll()
-  renderAll()
-}
-function updateMonthUI(){
-  const lbl = ymLabel(state.currentMonth)
-  document.getElementById('sb-month').textContent   = lbl
-  document.getElementById('dash-sub').textContent   = `${lbl} — em tempo real`
-}
-
-// ══════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════
-function go(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'))
-  document.getElementById(id).classList.add('active')
-}
-
-function showPage(id, btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
-  document.getElementById('page-'+id).classList.add('active')
-  document.querySelectorAll('.nav-tab,.sb-item,.mnav-item').forEach(t=>t.classList.remove('active'))
-  const map={dashboard:0,gastos:1,metas:2,renda:3}
-  const i=map[id]
-  ;['.nav-tab','.sb-item','.mnav-item'].forEach(sel=>{
-    const els=document.querySelectorAll(sel)
-    if(els[i])els[i].classList.add('active')
-  })
-}
-
-function openModal(id){
-  // Ao abrir modal de gasto sem ser via editGasto, reseta para modo "novo"
-  if(id==='m-gasto' && !document.getElementById('g-edit-id').value){
-    const today = new Date()
-    const [y,m] = state.currentMonth.split('-').map(Number)
-    const isCurrent = (today.getFullYear()===y && today.getMonth()+1===m)
-    document.getElementById('g-date').value = isCurrent
-      ? today.toISOString().split('T')[0]
-      : `${state.currentMonth}-01`
-    document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
-  }
-  if(id==='m-meta' && !document.getElementById('mt-edit-id').value){
-    document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
-    document.getElementById('mt-save').textContent='Criar meta'
-  }
-  document.getElementById(id).classList.add('open')
-}
-function closeModal(id){
-  document.getElementById(id).classList.remove('open')
-  if(id==='m-gasto'){ document.getElementById('g-edit-id').value=''; document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>' }
-  if(id==='m-meta') { document.getElementById('mt-edit-id').value=''; document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>' }
-}
-document.querySelectorAll('.modal-overlay').forEach(m=>
-  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') })
-)
-
-function setLoading(btnId, loading){
-  const b = document.getElementById(btnId)
-  if(!b) return
-  b.disabled = loading
-  b.textContent = loading ? 'Aguarde...' : b.dataset.text||b.textContent
-}
-
-// ══════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════
-async function doLogin(){
-  const email = document.getElementById('login-email').value.trim()
-  const pass  = document.getElementById('login-pass').value
-  const err   = document.getElementById('login-err')
-  err.classList.remove('show')
-  if(!email||!pass){ err.textContent='Preencha e-mail e senha.'; err.classList.add('show'); return }
-  document.getElementById('login-btn').disabled=true
-  document.getElementById('login-btn').textContent='Entrando...'
-  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass })
-  document.getElementById('login-btn').disabled=false
-  document.getElementById('login-btn').textContent='Entrar'
-  if(error){ err.textContent = error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':error.message; err.classList.add('show'); return }
-  await loadApp(data.user)
-}
-
-async function doRegister(){
-  const name  = document.getElementById('reg-name').value.trim()
-  const email = document.getElementById('reg-email').value.trim()
-  const pass  = document.getElementById('reg-pass').value
-  const pass2 = document.getElementById('reg-pass2').value
-  const err   = document.getElementById('reg-err')
-  const ok    = document.getElementById('reg-ok')
-  err.classList.remove('show'); ok.classList.remove('show')
-  if(!name||!email||!pass||!pass2){ err.textContent='Preencha todos os campos.'; err.classList.add('show'); return }
-  if(pass.length<6){ err.textContent='Senha deve ter no mínimo 6 caracteres.'; err.classList.add('show'); return }
-  if(pass!==pass2){ err.textContent='As senhas não coincidem.'; err.classList.add('show'); return }
-  document.getElementById('reg-btn').disabled=true
-  document.getElementById('reg-btn').textContent='Criando conta...'
-  const { data, error } = await supa.auth.signUp({
-    email, password: pass,
-    options: { data: { name } }
-  })
-  document.getElementById('reg-btn').disabled=false
-  document.getElementById('reg-btn').textContent='Criar conta grátis'
-  if(error){ err.textContent=error.message; err.classList.add('show'); return }
-  if(data.user){
-    document.getElementById('verify-email-addr').textContent = email
-    go('screen-verify-email')
-  }
-}
-
-async function reenviarVerificacao(){
-  const email = document.getElementById('verify-email-addr').textContent
-  const ok    = document.getElementById('verify-resend-ok')
-  if(!email) return
-  await supa.auth.resend({ type:'signup', email })
-  ok.textContent='E-mail reenviado! Verifique sua caixa de entrada.'
-  ok.classList.add('show')
-}
-
-async function doReset(){
-  const email = document.getElementById('reset-email').value.trim()
-  const err   = document.getElementById('reset-err')
-  const ok    = document.getElementById('reset-ok')
-  const btn   = document.getElementById('reset-btn')
-  err.classList.remove('show'); ok.classList.remove('show')
-  if(!email){ err.textContent='Informe seu e-mail.'; err.classList.add('show'); return }
-  btn.disabled=true; btn.textContent='Enviando...'
-  const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  })
-  btn.disabled=false; btn.textContent='Enviar link de recuperação'
-  if(error){ err.textContent=error.message; err.classList.add('show'); return }
-  ok.textContent='Link enviado! Verifique seu e-mail e clique no link para redefinir a senha.'
-  ok.classList.add('show')
-}
-
-async function doUpdatePassword(){
-  const pass1 = document.getElementById('newpass1').value
-  const pass2 = document.getElementById('newpass2').value
-  const err   = document.getElementById('newpass-err')
-  const ok    = document.getElementById('newpass-ok')
-  const btn   = document.getElementById('newpass-btn')
-  err.classList.remove('show'); ok.classList.remove('show')
-  if(!pass1||!pass2){ err.textContent='Preencha os dois campos.'; err.classList.add('show'); return }
-  if(pass1.length<6){ err.textContent='Senha deve ter no mínimo 6 caracteres.'; err.classList.add('show'); return }
-  if(pass1!==pass2){ err.textContent='As senhas não coincidem.'; err.classList.add('show'); return }
-  btn.disabled=true; btn.textContent='Salvando...'
-  const { error } = await supa.auth.updateUser({ password: pass1 })
-  btn.disabled=false; btn.textContent='Salvar nova senha'
-  if(error){ err.textContent=error.message; err.classList.add('show'); return }
-  ok.textContent='Senha atualizada! Fazendo logout para confirmar...'
-  ok.classList.add('show')
-  setTimeout(async ()=>{
-    state.user = null
-    await supa.auth.signOut()
-    document.getElementById('newpass1').value=''
-    document.getElementById('newpass2').value=''
-    go('screen-login')
-  }, 1500)
-}
-
-async function doLogout(){
-  await supa.auth.signOut()
-  state = { user:null, profile:null, gastos:[], metas:[], renda:[] }
-  go('screen-login')
-}
-
-// ══════════════════════════════════════════
-// PAYWALL
-// ══════════════════════════════════════════
-let selPlanVal = 'pro'
-function selPlan(p){
-  selPlanVal = p
-  document.getElementById('plan-free').classList.toggle('selected', p==='free')
-  document.getElementById('plan-pro').classList.toggle('selected', p==='pro')
-  document.getElementById('plan-bundle').classList.toggle('selected', p==='bundle')
-  const labels = {
-    pro: 'Começar 7 dias grátis — PRO',
-    free: 'Usar plano Starter',
-    bundle: 'Adquirir Bundle R$97'
-  }
-  document.getElementById('paywall-btn').textContent = labels[p] || labels.pro
-}
-
-async function ativarPlano(){
-  // Em produção: redirecionar para Stripe Checkout
-  // Por ora: ativa trial PRO no Supabase
-  const trialEnd = new Date(Date.now() + 7*86400000).toISOString()
-  await supa.from('profiles').upsert({
-    id: state.user.id,
-    name: state.user.user_metadata?.name || state.user.email.split('@')[0],
-    plan: 'trial',
-    trial_end: trialEnd
-  }, { onConflict: 'id' })
-  if(!state.profile) state.profile = {}
-  state.profile.plan = 'trial'
-  state.profile.trial_end = trialEnd
-  await loadApp(state.user)
-}
-
-async function ativarFree(){
-  await supa.from('profiles').upsert({
-    id: state.user.id,
-    name: state.user.user_metadata?.name || state.user.email.split('@')[0],
-    plan: 'free'
-  }, { onConflict: 'id' })
-  if(!state.profile) state.profile = {}
-  state.profile.plan = 'free'
-  await loadApp(state.user)
-}
-
-function isPro(){
-  if(!state.profile) return false
-  if(state.profile.plan==='pro') return true
-  if(state.profile.plan==='trial'){
-    return new Date(state.profile.trial_end) > new Date()
-  }
-  return false
-}
-
-// ══════════════════════════════════════════
-// LOAD APP
-// ══════════════════════════════════════════
-async function loadApp(user){
-  state.user = user
-  // Buscar perfil
-  let { data: profile } = await supa.from('profiles').select('*').eq('id', user.id).single()
-  if(!profile){
-    await supa.from('profiles').insert({
-      id: user.id,
-      name: user.user_metadata?.name || user.email.split('@')[0],
-      plan: 'trial',
-      trial_end: new Date(Date.now()+7*86400000).toISOString()
-    })
-    const { data: p2 } = await supa.from('profiles').select('*').eq('id', user.id).single()
-    profile = p2
-  }
-  // Se o plano trial venceu ou é inválido → downgrade automático para free (nunca bloqueia o login)
-  if(profile){
-    const trialExpired = profile.plan==='trial' && new Date(profile.trial_end) <= new Date()
-    const planInvalid  = !profile.plan || (profile.plan!=='pro' && profile.plan!=='free' && profile.plan!=='trial')
-    if(trialExpired || planInvalid){
-      await supa.from('profiles').update({ plan:'free', trial_end:null }).eq('id', user.id)
-      profile.plan = 'free'
-      profile.trial_end = null
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Predador Financeiro: plataforma simples, visual e agressiva para dominar seus gastos, renda, metas e saldo mensal por R$19,90/mês.">
+  <meta property="og:title" content="Predador Financeiro | Pare de ser presa do seu próprio dinheiro">
+  <meta property="og:description" content="Veja para onde vai cada centavo. Dashboard visual, simples e poderoso por R$19,90/mês. Primeira semana grátis.">
+  <meta property="og:type" content="website">
+  <title>Predador Financeiro | Pare de ser presa do seu próprio dinheiro</title>
+
+  <!-- ═══ META PIXEL — substitua PIXEL_ID pelo ID do seu pixel ═══ -->
+  <script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'PIXEL_ID'); // ← SUBSTITUA pelo ID do seu Pixel Meta
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=PIXEL_ID&ev=PageView&noscript=1"/></noscript>
+  <!-- ═══ FIM META PIXEL ═══ -->
+
+  <!-- ═══ GOOGLE ANALYTICS 4 — substitua G-XXXXXXXXXX pelo seu ID ═══ -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX'); // ← SUBSTITUA pelo seu ID GA4
+  </script>
+  <!-- ═══ FIM GA4 ═══ -->
+  <style>
+    :root {
+      --bg: #050607;
+      --bg-2: #0a0d10;
+      --panel: #11161c;
+      --panel-2: #171d24;
+      --line: rgba(255, 255, 255, 0.1);
+      --muted: #9aa3af;
+      --text: #f5f7fa;
+      --red: #ef233c;
+      --red-dark: #a90f24;
+      --red-glow: rgba(239, 35, 60, 0.38);
+      --green: #28e07f;
+      --yellow: #ffd166;
+      --graphite: #222831;
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+      --radius: 24px;
+      --max: 1180px;
     }
-  }
-  state.profile = profile
 
-  // Buscar dados
-  await fetchAll()
-
-  // Atualizar UI
-  const name = profile.name || user.email.split('@')[0]
-  document.getElementById('nav-name').textContent = name.split(' ')[0]
-  const badge = document.getElementById('nav-badge')
-  if(isPro()){ badge.textContent='PRO'; badge.className='badge-plan badge-pro' }
-  else        { badge.textContent='FREE'; badge.className='badge-plan badge-free' }
-
-  const now = new Date()
-  state.currentMonth = ymNow()
-  updateMonthUI()
-  document.getElementById('g-date').value = now.toISOString().split('T')[0]
-
-  go('screen-app')
-  refreshCatDatalist()
-  renderAll()
-  showPage('dashboard', null)
-}
-
-async function fetchAll(){
-  const [start, end] = ymRange(state.currentMonth)
-  // Query única: gastos do mês OU gastos fixos recorrentes de meses anteriores
-  const [g, m, r] = await Promise.all([
-    supa.from('gastos').select('*').eq('user_id', state.user.id)
-      .or(`and(data.gte.${start},data.lte.${end}),and(recorrente.is.true,data.lt.${start}),and(tipo.eq.Parcelado,parcela_inicio.lte.${end},parcela_fim.gte.${start})`)
-      .order('data',{ascending:false}),
-    supa.from('metas').select('*').eq('user_id', state.user.id).order('created_at',{ascending:false}),
-    supa.from('rendas').select('*').eq('user_id', state.user.id)
-      .eq('mes', state.currentMonth).order('created_at',{ascending:false}),
-  ])
-  state.gastos = g.data || []
-  state.metas  = m.data || []
-  state.renda  = r.data || []
-}
-
-// ══════════════════════════════════════════
-// RENDER
-// ══════════════════════════════════════════
-function n(v){ const x=Number(v)||0; return x%1===0 ? x.toLocaleString('pt-BR') : x.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }
-
-function renderAll(){
-  renderSidebar()
-  renderDashboard()
-  renderGastos()
-  renderMetas()
-  renderRenda()
-}
-
-function renderSidebar(){
-  updateMonthUI()
-  const total  = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
-  const budget = state.renda.reduce((s,r)=>s+Number(r.valor),0)
-  const pct    = budget > 0 ? Math.min(100, Math.round((total/budget)*100)) : 0
-  const livre  = Math.max(0, budget - total)
-  document.getElementById('sb-spent').textContent = 'R$'+n(total)
-  document.getElementById('sb-total').textContent = 'R$'+n(budget)
-  document.getElementById('sb-pct').textContent   = pct+'% usado'
-  document.getElementById('sb-free').textContent  = 'R$'+n(livre)+' livre'
-  const fill = document.getElementById('sb-fill')
-  fill.style.width      = pct+'%'
-  fill.style.background = pct>80?'var(--red)':pct>60?'var(--gold)':'var(--green)'
-}
-
-function renderDashboard(){
-  const totalG = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
-  const totalR = state.renda.reduce((s,r)=>s+Number(r.valor),0)
-  const saldo  = totalR - totalG
-  document.getElementById('d-renda').textContent  = n(totalR)
-  document.getElementById('d-gastos').textContent = n(totalG)
-  document.getElementById('d-saldo').textContent  = n(Math.abs(saldo))
-  document.getElementById('d-saldo').className    = 'mcard-val '+(saldo>=0?'gold':'red')
-  document.getElementById('d-metas').textContent  = state.metas.filter(m=>!m.concluida).length
-
-  const recent = state.gastos.slice(0,5)
-  const rt = document.getElementById('recent-tx')
-  rt.innerHTML = !recent.length
-    ? '<tr><td colspan="3" style="color:var(--gray);text-align:center;padding:20px">Nenhuma transação ainda.</td></tr>'
-    : recent.map(g=>`<tr>
-        <td>${g.descricao}</td>
-        <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
-        <td class="amt-neg">-R$${n(Number(g.valor))}</td>
-      </tr>`).join('')
-
-  const cats = {}
-  state.gastos.forEach(g=>{ cats[g.categoria]=(cats[g.categoria]||0)+Number(g.valor) })
-  const donut = document.getElementById('donut-area')
-  if(!Object.keys(cats).length){ donut.innerHTML='<div class="empty-state"><p>Nenhum gasto ainda.</p></div>'; return }
-  const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1])
-  const tot = Object.values(cats).reduce((s,v)=>s+v,0)
-  let off=0
-  const circles = entries.map(([cat,val])=>{
-    const d=val/tot*239.27
-    const c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${catColor(cat)}" stroke-width="16" stroke-dasharray="${d.toFixed(1)} ${(239.27-d).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 50 50)"/>`
-    off+=d; return c
-  })
-  donut.innerHTML=`
-    <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0">
-      <circle cx="50" cy="50" r="38" fill="none" stroke="#222" stroke-width="16"/>
-      ${circles.join('')}
-      <text x="50" y="47" text-anchor="middle" fill="#F0EFE8" font-family="Bebas Neue,sans-serif" font-size="14">${n(tot)}</text>
-      <text x="50" y="57" text-anchor="middle" fill="#777" font-size="7">total</text>
-    </svg>
-    <div class="donut-legend">${entries.slice(0,5).map(([cat,val])=>`
-      <div class="legend-item">
-        <div class="legend-dot" style="background:${catColor(cat)}"></div>${cat}
-        <span class="legend-pct">${Math.round(val/tot*100)}%</span>
-      </div>`).join('')}
-    </div>`
-}
-
-function renderGastos(){
-  const total  = state.gastos.reduce((s,g)=>s+Number(g.valor),0)
-  const budget = state.renda.reduce((s,r)=>s+Number(r.valor),0)
-  const livre  = Math.max(0, budget - total)
-  document.getElementById('g-total').textContent = n(total)
-  document.getElementById('g-livre').textContent     = n(livre)
-  document.getElementById('g-livre-sub').textContent = 'de R$'+n(budget)
-  const cats = {}
-  state.gastos.forEach(g=>{ cats[g.categoria]=(cats[g.categoria]||0)+Number(g.valor) })
-  const top = Object.entries(cats).sort((a,b)=>b[1]-a[1])[0]
-  if(top){ document.getElementById('g-top').textContent=top[0]; document.getElementById('g-top-val').textContent='R$'+n(top[1]) }
-
-  const cp = document.getElementById('cat-prog')
-  const catTotal = Object.values(cats).reduce((s,v)=>s+v,0)
-  cp.innerHTML = !Object.keys(cats).length
-    ? '<div class="empty-state"><p>Nenhum gasto registrado.</p></div>'
-    : Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>{
-        const p = catTotal>0 ? Math.min(100,Math.round(val/catTotal*100)) : 0
-        const c = catColor(cat)
-        return `<div class="prog-row">
-          <div class="prog-top"><span class="prog-name">${cat}</span><span class="prog-val">R$${n(val)} <span style="color:var(--gray);font-size:11px">(${p}%)</span></span></div>
-          <div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${c}"></div></div>
-        </div>`
-      }).join('')
-
-  if(!isPro()){
-    document.getElementById('banner-gastos').style.display='flex'
-    document.getElementById('gastos-count').textContent=`${state.gastos.length}/${FREE_GASTOS}`
-  } else {
-    document.getElementById('banner-gastos').style.display='none'
-  }
-
-  const tb = document.getElementById('all-tx')
-  tb.innerHTML = !state.gastos.length
-    ? '<tr><td colspan="8" style="color:var(--gray);text-align:center;padding:20px">Nenhum gasto registrado.</td></tr>'
-    : state.gastos.map(g=>{
-        const parcelaLabel = g.tipo==='Parcelado' && g.parcela_inicio && g.parcela_fim
-          ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">${g.parcela_inicio.substring(0,7)} → ${g.parcela_fim.substring(0,7)}</div>` : ''
-        const badge = g.tipo==='Parcelado' ? 'pill-warn' : g.tipo==='Fixo' ? 'pill-ok' : 'pill-warn'
-        const icon  = g.recorrente ? '🔄' : g.tipo==='Parcelado' ? '📅' : ''
-        const pgtoIcon = {'Crédito':'💳','Débito/Pix':'◈','Dinheiro':'💵'}
-        const pgto = g.forma_pagamento||'Débito/Pix'
-        const pgtoColor = pgto==='Crédito'?'var(--gold)':pgto==='Dinheiro'?'var(--green2)':'var(--blue2)'
-        return `<tr>
-          <td>${g.descricao}${icon?`<span style="margin-left:6px;opacity:.7">${icon}</span>`:''}${parcelaLabel}</td>
-          <td><span class="cat-dot" style="background:${catColor(g.categoria)}"></span>${g.categoria}</td>
-          <td>${g.data||'—'}</td>
-          <td class="amt-neg">-R$${n(Number(g.valor))}</td>
-          <td><span style="font-size:11px;color:${pgtoColor}">${pgtoIcon[pgto]||'◈'} ${pgto}</span></td>
-          <td><span class="status-pill ${badge}">${g.tipo}</span></td>
-          <td><button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editGasto('${g.id}')">✎</button><button class="del-btn" onclick="delGasto('${g.id}',${!!g.recorrente})">✕</button></td>
-        </tr>`
-      }).join('')
-}
-
-function renderMetas(){
-  const ativas = state.metas.filter(m=>!m.concluida)
-  const done   = state.metas.filter(m=>m.concluida)
-  const saved  = state.metas.reduce((s,m)=>s+Number(m.atual),0)
-  document.getElementById('m-ativas').textContent = ativas.length
-  document.getElementById('m-done').textContent   = done.length
-  document.getElementById('m-saved').textContent  = n(saved)
-
-  document.getElementById('banner-metas').style.display = (!isPro()&&ativas.length>=FREE_METAS)?'flex':'none'
-
-  const gl = document.getElementById('goals-list')
-  if(!state.metas.length){ gl.innerHTML='<div class="empty-state"><p>Nenhuma meta criada.</p></div>'; return }
-  gl.innerHTML = state.metas.map(m=>{
-    const pct=Math.min(100,Math.round(Number(m.atual)/Number(m.alvo)*100))
-    const st =m.concluida?'pill-ok':pct>80?'pill-ok':pct>40?'pill-warn':'pill-danger'
-    const stT=m.concluida?'Concluída':pct>80?'Quase lá':pct>40?'Em andamento':'Início'
-    const col=m.concluida?'var(--green2)':'var(--gold)'
-    return `<div class="goal-card">
-      <div class="goal-top">
-        <div><div class="goal-name">${m.nome}</div><div class="goal-target">Meta: R$${n(Number(m.alvo))} · Prazo: ${m.prazo||'—'}</div></div>
-        <span class="status-pill ${st}">${stT}</span>
-      </div>
-      <div class="goal-current" style="color:${col}">R$${n(Number(m.atual))}</div>
-      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${col}"></div></div>
-      <div class="goal-footer"><span>${pct}% concluído</span><span>Faltam R$${n(Math.max(0,Number(m.alvo)-Number(m.atual)))}</span></div>
-      <div class="goal-actions">
-        ${!m.concluida?`<button class="goal-btn" onclick="openDeposit('${m.id}')">+ Adicionar valor</button>`:''}
-        <button class="goal-btn" onclick="editMeta('${m.id}')">✎ Editar</button>
-        <button class="goal-btn danger" onclick="delMeta('${m.id}')">Excluir</button>
-      </div>
-    </div>`
-  }).join('')
-}
-
-function renderRenda(){
-  const total = state.renda.reduce((s,r)=>s+Number(r.valor),0)
-  const fixa  = state.renda.filter(r=>r.tipo==='Renda fixa').reduce((s,r)=>s+Number(r.valor),0)
-  const vari  = total-fixa
-  document.getElementById('r-total').textContent = n(total)
-  document.getElementById('r-fixa').textContent  = n(fixa)
-  document.getElementById('r-var').textContent   = n(vari)
-  document.getElementById('r-fixa-p').textContent= total?Math.round(fixa/total*100)+'% do total':'0%'
-  document.getElementById('r-var-p').textContent = total?Math.round(vari/total*100)+'% do total':'0%'
-  const rl = document.getElementById('renda-list')
-  rl.innerHTML = !state.renda.length
-    ? '<div class="empty-state"><p>Nenhuma renda registrada.</p></div>'
-    : state.renda.map(r=>`
-      <div class="renda-card">
-        <div class="renda-icon">${rendaIcons[r.tipo]||'◈'}</div>
-        <div class="renda-body"><div class="renda-name">${r.nome}</div><div class="renda-type">${r.tipo}</div></div>
-        <div class="renda-val">R$${n(Number(r.valor))}</div>
-        <button class="del-btn" style="margin-right:4px;background:var(--bg4);color:var(--gray)" onclick="editRenda('${r.id}')">✎</button>
-        <button class="del-btn" onclick="delRenda('${r.id}')">✕</button>
-      </div>`).join('')
-}
-
-// ══════════════════════════════════════════
-// CRUD — Supabase
-// ══════════════════════════════════════════
-function editGasto(id){
-  const g = state.gastos.find(x=>x.id===id)
-  if(!g) return
-  document.getElementById('g-edit-id').value = id
-  document.getElementById('g-desc').value    = g.descricao
-  document.getElementById('g-val').value     = g.valor
-  document.getElementById('g-date').value    = g.data||''
-  document.getElementById('g-cat').value       = g.categoria
-  document.getElementById('g-tipo').value      = g.tipo
-  document.getElementById('g-pagamento').value = g.forma_pagamento||'Débito/Pix'
-  // Preenche campos de parcelamento se necessário
-  if(g.tipo==='Parcelado'){
-    document.getElementById('g-parcela-inicio').value = g.parcela_inicio ? g.parcela_inicio.substring(0,7) : ''
-    document.getElementById('g-parcela-fim').value    = g.parcela_fim    ? g.parcela_fim.substring(0,7)    : ''
-  }
-  toggleParcelaFields()
-  document.getElementById('m-gasto-title').innerHTML = 'Editar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
-  openModal('m-gasto')
-}
-
-async function saveGasto(){
-  const desc   = document.getElementById('g-desc').value.trim()
-  const val    = parseFloat(document.getElementById('g-val').value)
-  const cat    = document.getElementById('g-cat').value.trim()
-  const tipo   = document.getElementById('g-tipo').value
-  const date   = document.getElementById('g-date').value
-  const editId = document.getElementById('g-edit-id').value
-  // Campos de parcelamento
-  const parcelaInicio  = document.getElementById('g-parcela-inicio').value
-  const parcelaFim     = document.getElementById('g-parcela-fim').value
-  const formaPagamento = document.getElementById('g-pagamento').value
-  if(!desc||!val||val<=0){ alert('Preencha descrição e valor.'); return }
-  if(tipo==='Parcelado' && (!parcelaInicio||!parcelaFim)){ alert('Informe o início e fim das parcelas.'); return }
-  if(tipo==='Parcelado' && parcelaFim < parcelaInicio){ alert('A data de fim deve ser após o início.'); return }
-  document.getElementById('g-save').disabled=true
-  const recorrente    = tipo==='Fixo'
-  const parcela_inicio = tipo==='Parcelado' ? ymToFirstDay(parcelaInicio) : null
-  const parcela_fim    = tipo==='Parcelado' ? ymToLastDay(parcelaFim)     : null
-  const dataGasto      = tipo==='Parcelado' ? parcela_inicio : (date||new Date().toISOString().split('T')[0])
-  if(editId){
-    const { data, error } = await supa.from('gastos').update({
-      descricao:desc, valor:val, categoria:cat, tipo, data:dataGasto, recorrente, parcela_inicio, parcela_fim, forma_pagamento:formaPagamento
-    }).eq('id',editId).select().single()
-    document.getElementById('g-save').disabled=false
-    if(error){ alert('Erro ao salvar: '+error.message); return }
-    saveCustomCat(cat)
-    const idx = state.gastos.findIndex(x=>x.id===editId)
-    if(idx>=0) state.gastos[idx]=data
-  } else {
-    if(!isPro()&&state.gastos.filter(g=>!g.recorrente&&g.tipo!=='Parcelado').length>=FREE_GASTOS){
-      alert('Limite do plano gratuito atingido.'); closeModal('m-gasto'); go('screen-paywall'); return
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    const { data, error } = await supa.from('gastos').insert({
-      user_id:state.user.id, descricao:desc, valor:val, categoria:cat, tipo,
-      data:dataGasto, recorrente, parcela_inicio, parcela_fim, forma_pagamento:formaPagamento
-    }).select().single()
-    document.getElementById('g-save').disabled=false
-    if(error){ alert('Erro ao salvar: '+error.message); return }
-    saveCustomCat(cat)
-    state.gastos.unshift(data)
-  }
-  // Reset modal
-  document.getElementById('g-edit-id').value=''
-  document.getElementById('g-desc').value=''
-  document.getElementById('g-val').value=''
-  document.getElementById('g-parcela-inicio').value=''
-  document.getElementById('g-parcela-fim').value=''
-  document.getElementById('g-tipo').value='Variável'
-  document.getElementById('g-pagamento').value='Débito/Pix'
-  toggleParcelaFields()
-  document.getElementById('m-gasto-title').innerHTML='Registrar gasto <button class="modal-close" onclick="closeModal(\'m-gasto\')">✕</button>'
-  closeModal('m-gasto')
-  renderAll()
-}
 
-async function delGasto(id, recorrente){
-  const g = state.gastos.find(x=>x.id===id)
-  if(g && g.tipo==='Parcelado'){
-    if(!confirm('Excluir este parcelamento de todos os meses?')) return
-  } else if(recorrente){
-    if(!confirm('Este gasto é fixo e aparece em todos os meses.\n\nExcluir o gasto fixo de todos os meses?')) return
-  } else {
-    if(!confirm('Excluir este gasto?')) return
-  }
-  await supa.from('gastos').delete().eq('id',id)
-  state.gastos = state.gastos.filter(g=>g.id!==id)
-  renderAll()
-}
-
-function editMeta(id){
-  const m = state.metas.find(x=>x.id===id)
-  if(!m) return
-  document.getElementById('mt-edit-id').value = id
-  document.getElementById('mt-nome').value    = m.nome
-  document.getElementById('mt-alvo').value    = m.alvo
-  document.getElementById('mt-atual').value   = m.atual
-  document.getElementById('mt-prazo').value   = m.prazo||''
-  document.getElementById('m-meta-title').innerHTML = 'Editar meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
-  openModal('m-meta')
-}
-
-async function saveMeta(){
-  const nome   = document.getElementById('mt-nome').value.trim()
-  const alvo   = parseFloat(document.getElementById('mt-alvo').value)||0
-  const atual  = parseFloat(document.getElementById('mt-atual').value)||0
-  const prazo  = document.getElementById('mt-prazo').value
-  const editId = document.getElementById('mt-edit-id').value
-  if(!nome||!alvo){ alert('Preencha nome e valor alvo.'); return }
-  document.getElementById('mt-save').disabled=true
-  if(editId){
-    const { data, error } = await supa.from('metas').update({
-      nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
-    }).eq('id',editId).select().single()
-    document.getElementById('mt-save').disabled=false
-    if(error){ alert('Erro: '+error.message); return }
-    const idx = state.metas.findIndex(x=>x.id===editId)
-    if(idx>=0) state.metas[idx]=data
-  } else {
-    if(!isPro()&&state.metas.filter(m=>!m.concluida).length>=FREE_METAS){ alert('Limite do plano gratuito atingido.'); closeModal('m-meta'); go('screen-paywall'); return }
-    const { data, error } = await supa.from('metas').insert({
-      user_id:state.user.id, nome, alvo, atual, prazo:prazo||null, concluida:atual>=alvo
-    }).select().single()
-    document.getElementById('mt-save').disabled=false
-    if(error){ alert('Erro: '+error.message); return }
-    state.metas.unshift(data)
-  }
-  // Reset modal
-  document.getElementById('mt-edit-id').value=''
-  document.getElementById('mt-nome').value=''
-  document.getElementById('mt-alvo').value=''
-  document.getElementById('mt-atual').value=''
-  document.getElementById('m-meta-title').innerHTML='Nova meta <button class="modal-close" onclick="closeModal(\'m-meta\')">✕</button>'
-  closeModal('m-meta')
-  renderAll()
-}
-
-async function delMeta(id){
-  if(!confirm('Excluir esta meta?')) return
-  await supa.from('metas').delete().eq('id',id)
-  state.metas = state.metas.filter(m=>m.id!==id)
-  renderAll()
-}
-
-function openDeposit(id){
-  document.getElementById('dep-id').value=id
-  document.getElementById('dep-val').value=''
-  openModal('m-deposit')
-}
-
-async function doDeposit(){
-  const id  = document.getElementById('dep-id').value
-  const val = parseFloat(document.getElementById('dep-val').value)||0
-  if(!val||val<=0){ alert('Digite um valor válido.'); return }
-  const meta = state.metas.find(m=>m.id===id)
-  if(!meta) return
-  const novoAtual = Math.min(Number(meta.alvo), Number(meta.atual)+val)
-  const concluida = novoAtual >= Number(meta.alvo)
-  await supa.from('metas').update({ atual:novoAtual, concluida }).eq('id',id)
-  meta.atual    = novoAtual
-  meta.concluida= concluida
-  closeModal('m-deposit')
-  renderAll()
-}
-
-function editRenda(id){
-  const r = state.renda.find(x=>x.id===id)
-  if(!r) return
-  document.getElementById('r-edit-id').value  = id
-  document.getElementById('r-nome').value     = r.nome
-  document.getElementById('r-val').value      = r.valor
-  document.getElementById('r-tipo').value     = r.tipo
-  document.getElementById('m-renda-title').innerHTML = 'Editar renda <button class="modal-close" onclick="closeModal(\'m-renda\')">✕</button>'
-  openModal('m-renda')
-}
-
-async function saveRenda(){
-  const nome   = document.getElementById('r-nome').value.trim()
-  const val    = parseFloat(document.getElementById('r-val').value)||0
-  const tipo   = document.getElementById('r-tipo').value
-  const editId = document.getElementById('r-edit-id').value
-  if(!nome||!val){ alert('Preencha nome e valor.'); return }
-  document.getElementById('r-save').disabled=true
-  if(editId){
-    // Editar existente
-    const { data, error } = await supa.from('rendas').update({ nome, valor:val, tipo }).eq('id',editId).select().single()
-    document.getElementById('r-save').disabled=false
-    if(error){ alert('Erro: '+error.message); return }
-    const idx = state.renda.findIndex(x=>x.id===editId)
-    if(idx>=0) state.renda[idx] = data
-  } else {
-    // Nova renda
-    const { data, error } = await supa.from('rendas').insert({ user_id:state.user.id, nome, valor:val, tipo, mes:state.currentMonth }).select().single()
-    document.getElementById('r-save').disabled=false
-    if(error){ alert('Erro: '+error.message); return }
-    state.renda.unshift(data)
-  }
-  // Reset modal
-  document.getElementById('r-edit-id').value = ''
-  document.getElementById('r-nome').value    = ''
-  document.getElementById('r-val').value     = ''
-  document.getElementById('m-renda-title').innerHTML = 'Nova renda <button class="modal-close" onclick="closeModal(\'m-renda\')">✕</button>'
-  closeModal('m-renda')
-  renderAll()
-}
-
-async function delRenda(id){
-  if(!confirm('Excluir esta fonte de renda?')) return
-  await supa.from('rendas').delete().eq('id',id)
-  state.renda = state.renda.filter(r=>r.id!==id)
-  renderAll()
-}
-
-// ══════════════════════════════════════════
-// INIT — verificar sessão existente
-// ══════════════════════════════════════════
-;(async function init(){
-  // Lê o tipo do link ANTES do Supabase processar o hash (recovery, signup, etc.)
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/,''))
-  const linkType   = hashParams.get('type') // 'recovery' | 'signup' | null
-
-  const { data: { session } } = await supa.auth.getSession()
-
-  if(linkType === 'recovery' && session?.user){
-    // Link de recuperação de senha → vai para tela de nova senha
-    state.user = session.user
-    go('screen-new-password')
-  } else if(session?.user){
-    // Sessão normal — verifica se já tem perfil (escolheu plano)
-    const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
-    if(profile){
-      await loadApp(session.user)
-    } else {
-      state.user = session.user
-      go('screen-paywall')
+    html {
+      scroll-behavior: smooth;
     }
-  } else {
-    go('screen-login')
-  }
 
-  // Ouvir mudanças de auth
-  supa.auth.onAuthStateChange(async (event, session) => {
-    if(event==='SIGNED_OUT') go('screen-login')
-    if(event==='PASSWORD_RECOVERY'){
-      // Garante que state.user está definido para bloquear o SIGNED_IN de entrar no app
-      state.user = session?.user || state.user
-      go('screen-new-password')
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(239, 35, 60, 0.18), transparent 30%),
+        radial-gradient(circle at 82% 6%, rgba(40, 224, 127, 0.08), transparent 25%),
+        linear-gradient(135deg, #030405 0%, #0b0f13 50%, #060708 100%);
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      overflow-x: hidden;
     }
-    // Confirmação de email ou login — só entra se não estiver numa tela de senha
-    if(event==='SIGNED_IN' && session?.user && !state.user){
-      const { data: profile } = await supa.from('profiles').select('id').eq('id', session.user.id).single()
-      if(profile){
-        await loadApp(session.user)
-      } else {
-        state.user = session.user
-        go('screen-paywall')
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.42;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
+      z-index: -1;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(18px);
+      background: rgba(5, 6, 7, 0.74);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      min-height: 78px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .logo-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(239, 35, 60, 0.7);
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(239, 35, 60, 0.28), rgba(255, 255, 255, 0.04));
+      box-shadow: 0 0 28px rgba(239, 35, 60, 0.18);
+      color: var(--red);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .nav a:hover {
+      color: var(--text);
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      padding: 0 24px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--red), #ff475d 45%, var(--red-dark));
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 900;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      box-shadow: 0 16px 40px var(--red-glow);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-2px);
+      filter: saturate(1.1);
+      box-shadow: 0 20px 54px rgba(239, 35, 60, 0.52);
+    }
+
+    .cta.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px var(--line);
+      color: var(--text);
+    }
+
+    .hero {
+      position: relative;
+      padding: 88px 0 82px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      align-items: center;
+      gap: 44px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 8px 13px;
+      border: 1px solid rgba(239, 35, 60, 0.28);
+      border-radius: 999px;
+      background: rgba(239, 35, 60, 0.08);
+      color: #ff9aa7;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(239, 35, 60, 0.8);
+      animation: pulse 1.6s infinite;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(2.8rem, 7vw, 6.75rem);
+      line-height: 0.86;
+      letter-spacing: -4px;
+      text-transform: uppercase;
+    }
+
+    .accent {
+      color: var(--red);
+      text-shadow: 0 0 36px rgba(239, 35, 60, 0.34);
+    }
+
+    .hero-copy {
+      max-width: 650px;
+      margin-top: 26px;
+      color: #c5ccd6;
+      font-size: clamp(1.08rem, 2vw, 1.34rem);
+      line-height: 1.58;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 34px;
+    }
+
+    .micro-proof {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .micro-proof strong {
+      color: var(--yellow);
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 34px;
+      max-width: 660px;
+    }
+
+    .hero-point {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.045);
+      color: #d5dbe3;
+      font-size: 0.93rem;
+    }
+
+    .mockup-wrap {
+      position: relative;
+      perspective: 1100px;
+    }
+
+    .mockup-glow {
+      position: absolute;
+      inset: 8% 6%;
+      border-radius: 40px;
+      background: radial-gradient(circle, rgba(239, 35, 60, 0.35), transparent 62%);
+      filter: blur(34px);
+      z-index: -1;
+    }
+
+    .dashboard {
+      position: relative;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 30px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 30%),
+        linear-gradient(160deg, #0b0f14, #111821 55%, #07090d);
+      box-shadow: var(--shadow);
+      transform: rotateY(-8deg) rotateX(5deg);
+      animation: float 7s ease-in-out infinite;
+    }
+
+    .dash-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .dash-title span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.77rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .dash-title strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 1.1rem;
+    }
+
+    .status-pill {
+      padding: 9px 12px;
+      border: 1px solid rgba(40, 224, 127, 0.25);
+      border-radius: 999px;
+      background: rgba(40, 224, 127, 0.09);
+      color: var(--green);
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .dash-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .dash-card {
+      min-height: 116px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+    }
+
+    .dash-card small {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .dash-card strong {
+      display: block;
+      margin-top: 12px;
+      font-size: 1.45rem;
+      letter-spacing: -0.6px;
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .red {
+      color: #ff5a6d;
+    }
+
+    .yellow {
+      color: var(--yellow);
+    }
+
+    .dash-main {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .chart-card,
+    .transactions-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .chart {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      height: 165px;
+      margin-top: 18px;
+    }
+
+    .bar {
+      flex: 1;
+      border-radius: 999px 999px 8px 8px;
+      background: linear-gradient(to top, var(--red-dark), var(--red));
+      min-height: 30px;
+      box-shadow: 0 0 22px rgba(239, 35, 60, 0.18);
+    }
+
+    .bar:nth-child(2) {
+      height: 84%;
+    }
+
+    .bar:nth-child(3) {
+      height: 46%;
+      background: linear-gradient(to top, #a67c00, var(--yellow));
+    }
+
+    .bar:nth-child(4) {
+      height: 62%;
+    }
+
+    .bar:nth-child(5) {
+      height: 38%;
+      background: linear-gradient(to top, #0f8e50, var(--green));
+    }
+
+    .tx {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.9rem;
+    }
+
+    .tx:last-child {
+      border-bottom: 0;
+    }
+
+    .tx span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .section {
+      padding: 88px 0;
+    }
+
+    .section-head {
+      max-width: 790px;
+      margin-bottom: 40px;
+    }
+
+    .section-tag {
+      margin-bottom: 14px;
+      color: var(--red);
+      font-size: 0.85rem;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4.2vw, 4.25rem);
+      line-height: 0.98;
+      letter-spacing: -2.2px;
+      text-transform: uppercase;
+    }
+
+    .section-head p {
+      margin-top: 18px;
+      color: #b7c0cb;
+      font-size: 1.1rem;
+      line-height: 1.65;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      min-height: 230px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 40%),
+        rgba(255, 255, 255, 0.04);
+      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.18);
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      right: -34px;
+      bottom: -34px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(239, 35, 60, 0.08);
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(239, 35, 60, 0.3);
+      border-radius: 18px;
+      background: rgba(239, 35, 60, 0.09);
+      color: var(--red);
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    .card h3 {
+      margin-bottom: 12px;
+      font-size: 1.33rem;
+      letter-spacing: -0.5px;
+    }
+
+    .card p {
+      color: #b2bbc7;
+      line-height: 1.62;
+    }
+
+    .pain {
+      background:
+        radial-gradient(circle at 20% 20%, rgba(239, 35, 60, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+    }
+
+    .pain-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .pain-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 20px;
+      border: 1px solid rgba(239, 35, 60, 0.16);
+      border-radius: 20px;
+      background: rgba(239, 35, 60, 0.045);
+      color: #dce1e7;
+    }
+
+    .pain-row b {
+      color: #ff5a6d;
+    }
+
+    .solution-box {
+      display: grid;
+      grid-template-columns: 0.88fr 1.12fr;
+      align-items: center;
+      gap: 30px;
+      padding: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 32px;
+      background:
+        radial-gradient(circle at 16% 16%, rgba(40, 224, 127, 0.1), transparent 28%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
+      box-shadow: var(--shadow);
+    }
+
+    .terminal {
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      background: #070a0d;
+    }
+
+    .terminal-top {
+      display: flex;
+      gap: 8px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+
+    .dot:nth-child(2) {
+      background: var(--yellow);
+    }
+
+    .dot:nth-child(3) {
+      background: var(--green);
+    }
+
+    .terminal-body {
+      padding: 24px;
+      color: #c8f7dc;
+      font-family: Consolas, "Courier New", monospace;
+      line-height: 1.75;
+    }
+
+    .terminal-body .danger {
+      color: #ff6b7b;
+    }
+
+    .terminal-body .warn {
+      color: var(--yellow);
+    }
+
+    .steps {
+      counter-reset: step;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 250px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: "0" counter(step);
+      display: inline-flex;
+      margin-bottom: 24px;
+      color: var(--red);
+      font-size: 2.25rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .compare-panel {
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .compare-panel.predator {
+      border-color: rgba(40, 224, 127, 0.22);
+      background: linear-gradient(145deg, rgba(40, 224, 127, 0.07), rgba(255, 255, 255, 0.035));
+    }
+
+    .compare-panel h3 {
+      margin-bottom: 20px;
+      font-size: 1.55rem;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 14px;
+      list-style: none;
+    }
+
+    .check-list li {
+      display: flex;
+      gap: 12px;
+      color: #c5ccd6;
+      line-height: 1.5;
+    }
+
+    .bad li::before {
+      content: "x";
+      flex: 0 0 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(239, 35, 60, 0.12);
+      color: #ff6475;
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .good li::before {
+      content: "✓";
+      flex: 0 0 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(40, 224, 127, 0.12);
+      color: var(--green);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .pricing {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(239, 35, 60, 0.24);
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 78% 16%, rgba(239, 35, 60, 0.16), transparent 28%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.03));
+      box-shadow: var(--shadow);
+    }
+
+    .pricing-inner {
+      display: grid;
+      grid-template-columns: 1fr 0.8fr;
+      align-items: center;
+      gap: 28px;
+      padding: 42px;
+    }
+
+    .price {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      margin: 18px 0 8px;
+      font-weight: 900;
+    }
+
+    .price span {
+      font-size: 1.6rem;
+      color: var(--muted);
+    }
+
+    .price strong {
+      font-size: clamp(3.3rem, 7vw, 5.6rem);
+      line-height: 0.86;
+      letter-spacing: -3px;
+    }
+
+    .price small {
+      color: var(--muted);
+      font-size: 1.12rem;
+      font-weight: 800;
+    }
+
+    .price-card {
+      padding: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 28px;
+      background: rgba(5, 6, 7, 0.55);
+    }
+
+    .guarantee {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      margin-top: 26px;
+      padding: 24px;
+      border: 1px solid rgba(255, 209, 102, 0.24);
+      border-radius: 24px;
+      background: rgba(255, 209, 102, 0.06);
+    }
+
+    .seal {
+      display: grid;
+      place-items: center;
+      flex: 0 0 72px;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 209, 102, 0.4);
+      color: var(--yellow);
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+
+    .faq {
+      display: grid;
+      gap: 14px;
+      max-width: 900px;
+    }
+
+    .faq-item {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.045);
+      overflow: hidden;
+    }
+
+    .faq-question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 22px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 1.02rem;
+      font-weight: 900;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .faq-question span {
+      color: var(--red);
+      font-size: 1.45rem;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+
+    .faq-answer p {
+      padding: 0 22px 22px;
+      color: #b5beca;
+      line-height: 1.65;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 180px;
+    }
+
+    .final-cta {
+      text-align: center;
+      padding: 96px 0 104px;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(239, 35, 60, 0.18), transparent 34%),
+        linear-gradient(180deg, transparent, rgba(239, 35, 60, 0.05));
+    }
+
+    .final-cta h2 {
+      max-width: 890px;
+      margin: 0 auto;
+    }
+
+    .final-cta p {
+      max-width: 660px;
+      margin: 22px auto 32px;
+      color: #c4cbd5;
+      font-size: 1.18rem;
+      line-height: 1.65;
+    }
+
+    /* ── ANNOUNCEMENT BAR ── */
+    .announce-bar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      padding: 11px 20px;
+      background: linear-gradient(90deg, #a90f24, var(--red), #a90f24);
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+    .announce-bar span {
+      opacity: 0.85;
+      font-weight: 400;
+    }
+    .announce-bar strong {
+      color: var(--yellow);
+    }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 8px;
+    }
+    .testi-card {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+    }
+    .testi-stars {
+      color: var(--yellow);
+      font-size: 1rem;
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+    }
+    .testi-text {
+      color: #c5ccd6;
+      line-height: 1.65;
+      font-size: 0.97rem;
+      margin-bottom: 18px;
+    }
+    .testi-text em {
+      color: var(--green);
+      font-style: normal;
+      font-weight: 700;
+    }
+    .testi-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .testi-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--red-dark), var(--red));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.9rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .testi-name {
+      font-size: 0.88rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .testi-role {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .proof-numbers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 48px;
+    }
+    .proof-number {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      text-align: center;
+    }
+    .proof-number strong {
+      display: block;
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--red);
+      letter-spacing: -1px;
+    }
+    .proof-number span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* ── URGENCY BADGE no pricing ── */
+    .urgency-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(255, 209, 102, 0.12);
+      border: 1px solid rgba(255, 209, 102, 0.3);
+      color: var(--yellow);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── MOBILE STICKY CTA BAR ── */
+    .mobile-cta-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 14px 20px 20px;
+      background: rgba(5,6,7,0.96);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .mobile-cta-bar .cta {
+      width: 100%;
+      min-height: 56px;
+      font-size: 1rem;
+    }
+    .mobile-cta-bar p {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    @media (max-width: 680px) {
+      .mobile-cta-bar { display: block; }
+      body { padding-bottom: 100px; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .proof-numbers { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 681px) and (max-width: 980px) {
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .proof-numbers { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── EXIT INTENT POPUP ── */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .popup-overlay.active {
+      display: flex;
+    }
+    .popup-box {
+      position: relative;
+      max-width: 520px;
+      width: 100%;
+      padding: 40px 36px;
+      border: 1px solid rgba(239,35,60,0.3);
+      border-radius: 32px;
+      background: linear-gradient(145deg, #0e1318, #080b0e);
+      box-shadow: 0 40px 120px rgba(0,0,0,0.7), 0 0 60px rgba(239,35,60,0.1);
+      text-align: center;
+    }
+    .popup-close {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .popup-box h3 {
+      font-size: 1.75rem;
+      line-height: 1.1;
+      letter-spacing: -0.8px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .popup-box p {
+      color: #b5beca;
+      line-height: 1.6;
+      margin-bottom: 26px;
+    }
+    .popup-box .cta {
+      width: 100%;
+      min-height: 56px;
+      font-size: 1rem;
+    }
+    .popup-skip {
+      display: block;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .popup-skip:hover { color: var(--text); }
+
+    .footer {
+      padding: 28px 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pulse {
+      70% {
+        box-shadow: 0 0 0 12px rgba(239, 35, 60, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 35, 60, 0);
       }
     }
-  })
-})()
-</script>
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(r => console.log('SW registrado:', r.scope))
-      .catch(e => console.log('SW erro:', e))
-  })
-}
-</script>
+
+    @keyframes float {
+      0%, 100% {
+        transform: rotateY(-8deg) rotateX(5deg) translateY(0);
+      }
+      50% {
+        transform: rotateY(-5deg) rotateX(4deg) translateY(-12px);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .nav {
+        display: none;
+      }
+
+      .hero-grid,
+      .solution-box,
+      .pricing-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard {
+        transform: none;
+      }
+
+      .dash-main,
+      .grid-3,
+      .steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero-points {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        letter-spacing: -2.4px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .container {
+        width: min(100% - 28px, var(--max));
+      }
+
+      .site-header .cta {
+        display: none;
+      }
+
+      .header-inner {
+        min-height: 68px;
+      }
+
+      .logo {
+        font-size: 0.88rem;
+      }
+
+      .hero {
+        padding: 54px 0 58px;
+      }
+
+      .hero-actions,
+      .cta {
+        width: 100%;
+      }
+
+      .hero-actions .cta {
+        min-height: 58px;
+      }
+
+      .section {
+        padding: 62px 0;
+      }
+
+      h1 {
+        font-size: clamp(2.65rem, 16vw, 4.2rem);
+        letter-spacing: -2px;
+      }
+
+      h2 {
+        letter-spacing: -1.2px;
+      }
+
+      .dash-cards,
+      .dash-main,
+      .grid-3,
+      .grid-2,
+      .steps,
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard {
+        padding: 14px;
+        border-radius: 24px;
+      }
+
+      .dash-card {
+        min-height: auto;
+      }
+
+      .chart {
+        height: 120px;
+      }
+
+      .solution-box,
+      .pricing-inner {
+        padding: 22px;
+      }
+
+      .price {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .guarantee {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- TROQUE AQUI PELO SEU LINK DA HOTMART -->
+  <!-- Exemplo: const HOTMART_LINK = "https://pay.hotmart.com/SEU-CODIGO"; -->
+
+  <!-- ── ANNOUNCEMENT BAR ── -->
+  <div class="announce-bar">
+    🔴 <strong>OFERTA ATIVA</strong> — Primeira semana <strong>grátis</strong>. Cancele quando quiser. <span>Acesso imediato após assinatura.</span>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="#top" aria-label="Predador Financeiro">
+        <span class="logo-mark">PF</span>
+        <span>PREDADOR FINANCEIRO</span>
+      </a>
+
+      <nav class="nav" aria-label="Navegação principal">
+        <a href="#problema">O problema</a>
+        <a href="#solucao">A solução</a>
+        <a href="#beneficios">Benefícios</a>
+        <a href="#preco">Preço</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+
+      <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <div class="eyebrow"><span class="pulse"></span> Controle financeiro sem planilha, sem enrolação</div>
+          <h1>Pare de ser <span class="accent">presa</span> do seu próprio dinheiro.</h1>
+          <p class="hero-copy">
+            O dinheiro não desaparece. Ele só escapa de quem não acompanha. O Predador Financeiro mostra renda, gastos, metas e saldo livre em tempo real para você dominar o que já ganha.
+          </p>
+
+          <div class="hero-actions">
+            <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+            <div class="micro-proof"><strong>R$19,90/mês</strong> para parar de dirigir no escuro.</div>
+          </div>
+
+          <div class="hero-points">
+            <div class="hero-point">Dashboard escuro, direto e visual.</div>
+            <div class="hero-point">Gastos por categoria sem confusão.</div>
+            <div class="hero-point">Metas e saldo mensal na sua cara.</div>
+          </div>
+        </div>
+
+        <div class="mockup-wrap reveal" aria-label="Mockup do dashboard Predador Financeiro">
+          <div class="mockup-glow"></div>
+          <div class="dashboard">
+            <div class="dash-top">
+              <div class="dash-title">
+                <span>Dashboard mensal</span>
+                <strong>Modo Predador ativado</strong>
+              </div>
+              <div class="status-pill">SALDO SOB CONTROLE</div>
+            </div>
+
+            <div class="dash-cards">
+              <div class="dash-card">
+                <small>Renda total</small>
+                <strong class="green">R$ 4.850</strong>
+              </div>
+              <div class="dash-card">
+                <small>Gastos totais</small>
+                <strong class="red">R$ 3.120</strong>
+              </div>
+              <div class="dash-card">
+                <small>Saldo livre</small>
+                <strong class="yellow">R$ 1.730</strong>
+              </div>
+              <div class="dash-card">
+                <small>Metas ativas</small>
+                <strong>4 metas</strong>
+              </div>
+            </div>
+
+            <div class="dash-main">
+              <div class="chart-card">
+                <strong>Gastos por categoria</strong>
+                <div class="chart" aria-hidden="true">
+                  <div class="bar" style="height: 72%"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                </div>
+              </div>
+
+              <div class="transactions-card">
+                <strong>Últimas transações</strong>
+                <div class="tx"><div>Mercado<br><span>Hoje</span></div><b class="red">-R$ 186</b></div>
+                <div class="tx"><div>Freela<br><span>Ontem</span></div><b class="green">+R$ 650</b></div>
+                <div class="tx"><div>Assinaturas<br><span>2 dias</span></div><b class="red">-R$ 79</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section pain" id="problema">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">A armadilha</div>
+          <h2>Seu salário não some. Ele está sendo caçado por pequenos vazamentos.</h2>
+          <p>Quando você não enxerga para onde o dinheiro vai, cada compra vira um ponto cego. No fim do mês, sobra ansiedade, limite estourado e a mesma pergunta: "onde foi parar tudo?"</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="pain-list reveal">
+            <div class="pain-row"><b>01.</b> Você recebe, paga algumas coisas e perde a noção do saldo real.</div>
+            <div class="pain-row"><b>02.</b> Cartão, Pix, delivery e assinatura drenam dinheiro sem você perceber.</div>
+            <div class="pain-row"><b>03.</b> Planilhas parecem bonitas no primeiro dia e abandonadas na segunda semana.</div>
+            <div class="pain-row"><b>04.</b> A sensação é trabalhar muito e continuar refém do mês seguinte.</div>
+          </div>
+
+          <div class="card reveal">
+            <div class="icon">!</div>
+            <h3>Você não precisa ganhar mais para começar.</h3>
+            <p>Precisa dominar o que já ganha. A virada acontece quando seu dinheiro deixa de ser uma névoa e vira um painel claro: entrada, saída, meta e sobra.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="solucao">
+      <div class="container">
+        <div class="solution-box reveal">
+          <div>
+            <div class="section-tag">A solução</div>
+            <h2>Um painel de comando para caçar desperdícios.</h2>
+            <p class="hero-copy">O Predador Financeiro foi criado para quem quer controle sem virar escravo de planilha. Você registra o que entra, o que sai, define metas e acompanha o saldo livre com clareza brutal.</p>
+            <div class="hero-actions">
+              <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+            </div>
+          </div>
+
+          <div class="terminal" aria-label="Resumo da plataforma">
+            <div class="terminal-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="terminal-body">
+              <div>&gt; renda_total: <span class="green">mapeada</span></div>
+              <div>&gt; gastos_ocultos: <span class="danger">expostos</span></div>
+              <div>&gt; metas: <span class="warn">ativas</span></div>
+              <div>&gt; saldo_livre: <span class="green">sob vigilância</span></div>
+              <div>&gt; status: controle financeiro recuperado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="beneficios">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">Benefícios</div>
+          <h2>O que muda quando você começa a acompanhar de verdade.</h2>
+          <p>Não é sobre ficar paranoico com cada centavo. É sobre enxergar o jogo antes que ele te engula.</p>
+        </div>
+
+        <div class="grid-3">
+          <article class="card reveal">
+            <div class="icon">$</div>
+            <h3>Saldo livre sem chute</h3>
+            <p>Veja quanto ainda pode usar no mês sem depender de memória, cálculo mental ou susto no aplicativo do banco.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">#</div>
+            <h3>Categorias que denunciam</h3>
+            <p>Descubra se o vilão está no delivery, lazer, mercado, assinaturas ou pequenos gastos que pareciam inofensivos.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">+</div>
+            <h3>Metas visíveis</h3>
+            <p>Transforme objetivos em progresso acompanhado. Dinheiro sem meta vira fuga. Dinheiro com meta vira direção.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">%</div>
+            <h3>Decisões mais frias</h3>
+            <p>Antes de comprar por impulso, você vê o impacto real no mês. Menos emoção cega, mais comando.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">↗</div>
+            <h3>Dashboard agressivo</h3>
+            <p>Uma experiência escura, moderna e profissional, feita para você bater o olho e entender a situação.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">✓</div>
+            <h3>Uso simples e rápido</h3>
+            <p>Registre renda, gastos e metas sem precisar estudar fórmula, montar tabela ou decorar método complicado.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">Como funciona</div>
+          <h2>Quatro passos para sair do modo presa.</h2>
+        </div>
+
+        <div class="steps">
+          <article class="step reveal">
+            <h3>Registre sua renda</h3>
+            <p>Coloque o dinheiro que entra no mês e pare de começar a análise no escuro.</p>
+          </article>
+          <article class="step reveal">
+            <h3>Lance seus gastos</h3>
+            <p>Adicione despesas por categoria para revelar exatamente onde o dinheiro escapa.</p>
+          </article>
+          <article class="step reveal">
+            <h3>Defina suas metas</h3>
+            <p>Crie alvos claros para reserva, dívida, compra importante ou qualquer objetivo financeiro.</p>
+          </article>
+          <article class="step reveal">
+            <h3>Acompanhe o saldo</h3>
+            <p>Use o dashboard para decidir com consciência antes de gastar, cortar ou avançar.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">Sem planilha quebrando sua disciplina</div>
+          <h2>Planilha exige paciência. Predador exige ação.</h2>
+          <p>Planilhas podem funcionar para quem ama fórmula. O Predador Financeiro é para quem quer abrir, lançar, enxergar e decidir.</p>
+        </div>
+
+        <div class="comparison">
+          <div class="compare-panel reveal">
+            <h3>Planilhas comuns</h3>
+            <ul class="check-list bad">
+              <li>Você precisa montar, ajustar, formatar e corrigir.</li>
+              <li>Fácil de abandonar quando a rotina aperta.</li>
+              <li>Visual frio, pouco motivador e cheio de abas.</li>
+              <li>O controle depende de disciplina manual demais.</li>
+            </ul>
+          </div>
+
+          <div class="compare-panel predator reveal">
+            <h3>Predador Financeiro</h3>
+            <ul class="check-list good">
+              <li>Dashboard pronto para renda, gastos, saldo e metas.</li>
+              <li>Visual forte que mostra o problema sem rodeio.</li>
+              <li>Gráficos por categoria para detectar vazamentos.</li>
+              <li>Foco no que importa: acompanhar e agir rápido.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── DEPOIMENTOS ── -->
+    <section class="section" id="depoimentos">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">Resultados reais</div>
+          <h2>O que muda quando você para de adivinhar.</h2>
+          <p>Cada pessoa que entrou no modo predador encontrou algo que estava escapando.</p>
+        </div>
+
+        <div class="proof-numbers reveal">
+          <div class="proof-number">
+            <strong>+500</strong>
+            <span>usuários ativos</span>
+          </div>
+          <div class="proof-number">
+            <strong>R$380</strong>
+            <span>média de gastos invisíveis encontrados no 1º mês</span>
+          </div>
+          <div class="proof-number">
+            <strong>7min</strong>
+            <span>tempo médio para registrar o mês inteiro</span>
+          </div>
+          <div class="proof-number">
+            <strong>4.9★</strong>
+            <span>satisfação dos assinantes</span>
+          </div>
+        </div>
+
+        <div class="testimonials-grid">
+          <div class="testi-card reveal">
+            <div class="testi-stars">★★★★★</div>
+            <p class="testi-text">"Em 3 dias descobri que estava gastando <em>R$340/mês</em> em assinaturas que nem lembrava de ter. Cancelei tudo e juntei esse dinheiro no mês seguinte. Nunca mais vou ficar sem controle."</p>
+            <div class="testi-author">
+              <div class="testi-avatar">CM</div>
+              <div>
+                <div class="testi-name">Camila M.</div>
+                <div class="testi-role">Designer freelancer, SP</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testi-card reveal">
+            <div class="testi-stars">★★★★★</div>
+            <p class="testi-text">"Tentei planilha umas 5 vezes e larguei sempre. O Predador é diferente: abro, registro, fecho. Em <em>2 semanas já sabia para onde ia cada real</em>. Simples assim."</p>
+            <div class="testi-author">
+              <div class="testi-avatar">PL</div>
+              <div>
+                <div class="testi-name">Pedro L.</div>
+                <div class="testi-role">Analista de TI, MG</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testi-card reveal">
+            <div class="testi-stars">★★★★★</div>
+            <p class="testi-text">"Ganhava bem e sempre ficava sem entender onde o dinheiro sumia. Em 1 mês usando o Predador <em>sobrei R$620</em> que antes eu simplesmente não via. O dashboard muda tudo."</p>
+            <div class="testi-author">
+              <div class="testi-avatar">RF</div>
+              <div>
+                <div class="testi-name">Renata F.</div>
+                <div class="testi-role">Professora, RJ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="preco">
+      <div class="container">
+        <div class="pricing reveal">
+          <div class="pricing-inner">
+            <div>
+              <div class="urgency-badge">⚡ Oferta atual — primeira semana grátis</div>
+              <div class="section-tag">Plano mensal</div>
+              <h2>Assuma o controle por menos que um lanche.</h2>
+              <p class="hero-copy">Se um gasto invisível já te tira muito mais que isso todo mês, R$19,90 é o preço de parar de fingir que está tudo sob controle.</p>
+
+              <div class="guarantee">
+                <div class="seal">7D</div>
+                <div>
+                  <h3>Garantia de 7 dias</h3>
+                  <p>Teste o Predador Financeiro por 7 dias. Se não fizer sentido para você, solicite o reembolso dentro do prazo pela Hotmart.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="price-card">
+              <p>Acesso à plataforma online</p>
+              <div class="price"><span>R$</span><strong>19,90</strong><small>/mês</small></div>
+              <ul class="check-list good">
+                <li>Dashboard financeiro em tempo real.</li>
+                <li>Registro de renda, gastos e metas.</li>
+                <li>Gráfico de gastos por categoria.</li>
+                <li>Lista de últimas transações.</li>
+                <li>Acesso imediato após pagamento.</li>
+                <li>Cancele quando quiser, sem burocracia.</li>
+              </ul>
+              <div style="height: 22px"></div>
+              <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="section-tag">Perguntas frequentes</div>
+          <h2>Antes de entrar no modo controle.</h2>
+        </div>
+
+        <div class="faq">
+          <div class="faq-item reveal active">
+            <button class="faq-question" type="button">Preciso saber mexer com planilha?<span>-</span></button>
+            <div class="faq-answer"><p>Não. A proposta é justamente fugir da complexidade das planilhas. Você usa uma plataforma visual, com campos e painéis prontos para acompanhar seu mês.</p></div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" type="button">Funciona no celular?<span>+</span></button>
+            <div class="faq-answer"><p>Sim. A página e a plataforma foram pensadas para uma experiência responsiva, permitindo acompanhar suas informações também pelo celular.</p></div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" type="button">O pagamento é seguro?<span>+</span></button>
+            <div class="faq-answer"><p>Sim. A compra é feita pela Hotmart, uma das maiores plataformas de produtos digitais do Brasil, com ambiente seguro de pagamento e proteção ao comprador.</p></div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" type="button">Posso cancelar quando quiser?<span>+</span></button>
+            <div class="faq-answer"><p>Sim. Como é um plano mensal, você cancela a qualquer momento diretamente na sua área de compra da Hotmart. Sem fidelidade, sem multa.</p></div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" type="button">E se eu não gostar?<span>+</span></button>
+            <div class="faq-answer"><p>Você tem 7 dias de garantia total. Se a plataforma não for para você, solicite o reembolso dentro desse prazo pela Hotmart e recebe 100% de volta.</p></div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" type="button">Como acesso depois de assinar?<span>+</span></button>
+            <div class="faq-answer"><p>O acesso é imediato após a confirmação do pagamento. Você recebe o link e os dados de acesso por email em menos de 5 minutos.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <div class="container reveal">
+        <div class="section-tag">A decisão</div>
+        <h2>Ou você controla o dinheiro, ou ele continua controlando seu mês.</h2>
+        <p>Você não precisa esperar o próximo salário desaparecer de novo. Entre agora, registre seu cenário e comece a caçar os vazamentos que estão roubando sua liberdade.</p>
+        <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── MOBILE STICKY CTA BAR ── -->
+  <div class="mobile-cta-bar">
+    <a class="cta hotmart-link" href="#">QUERO ASSUMIR O CONTROLE AGORA</a>
+    <p>Primeira semana grátis · R$19,90/mês · Cancele quando quiser</p>
+  </div>
+
+  <!-- ── EXIT INTENT POPUP ── -->
+  <div class="popup-overlay" id="exitPopup" role="dialog" aria-modal="true">
+    <div class="popup-box">
+      <button class="popup-close" id="popupClose" aria-label="Fechar">×</button>
+      <div class="section-tag" style="margin-bottom:10px;">Espera um segundo</div>
+      <h3>Você ainda <span class="accent">não sabe</span> para onde vai seu dinheiro.</h3>
+      <p>Antes de fechar: a primeira semana é completamente grátis. Sem risco. Você entra, registra seus gastos e — se não gostar — sai sem pagar nada.</p>
+      <a class="cta hotmart-link" href="#" style="margin:0 auto;display:flex;max-width:380px">TESTAR GRÁTIS POR 7 DIAS</a>
+      <span class="popup-skip" id="popupSkip">Não, prefiro continuar sem controle financeiro</span>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      Predador Financeiro © 2026. Plataforma de gestão financeira pessoal.
+    </div>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════
+    // SUBSTITUA ABAIXO PELO LINK DE CHECKOUT DA HOTMART
+    // Exemplo: const HOTMART_LINK = "https://pay.hotmart.com/SEU-CODIGO";
+    const HOTMART_LINK = "https://pay.hotmart.com/Y105549405L";
+    // ═══════════════════════════════════════════════════════
+
+    document.querySelectorAll(".hotmart-link").forEach((link) => {
+      link.href = HOTMART_LINK;
+      link.addEventListener("click", (event) => {
+        if (HOTMART_LINK === "#") {
+          event.preventDefault();
+          alert("Substitua a constante HOTMART_LINK no final do index.html pelo link do checkout da Hotmart.");
+        }
+      });
+    });
+
+    document.querySelectorAll(".faq-question").forEach((button) => {
+      button.addEventListener("click", () => {
+        const item = button.closest(".faq-item");
+        const isActive = item.classList.contains("active");
+
+        document.querySelectorAll(".faq-item").forEach((faqItem) => {
+          faqItem.classList.remove("active");
+          faqItem.querySelector(".faq-question span").textContent = "+";
+        });
+
+        if (!isActive) {
+          item.classList.add("active");
+          button.querySelector("span").textContent = "-";
+        }
+      });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.16 });
+
+    document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+
+    // ── EXIT INTENT ──
+    let exitShown = false;
+    document.addEventListener("mouseleave", (e) => {
+      if (e.clientY < 40 && !exitShown) {
+        exitShown = true;
+        document.getElementById("exitPopup").classList.add("active");
+        if (typeof fbq !== "undefined") fbq("track", "ViewContent", { content_name: "exit_popup" });
+      }
+    });
+    ["popupClose", "popupSkip"].forEach((id) => {
+      document.getElementById(id).addEventListener("click", () => {
+        document.getElementById("exitPopup").classList.remove("active");
+      });
+    });
+    document.getElementById("exitPopup").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("exitPopup")) {
+        document.getElementById("exitPopup").classList.remove("active");
+      }
+    });
+
+    // ── RASTREAR CLIQUE NO CTA ──
+    document.querySelectorAll(".cta.hotmart-link").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (typeof fbq !== "undefined") fbq("track", "InitiateCheckout");
+        if (typeof gtag !== "undefined") gtag("event", "begin_checkout", { currency: "BRL", value: 19.90 });
+      });
+    });
+  </script>
 </body>
 </html>
